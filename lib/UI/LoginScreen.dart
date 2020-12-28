@@ -8,6 +8,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   TextEditingController username = new TextEditingController();
   TextEditingController password = new TextEditingController();
+  bool obscure = true;
 
   @override
   Widget build(BuildContext context) {
@@ -31,79 +32,51 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 20,
                         ),
                         Container(
-                          height: 45,
-                          child: TextFormField(
-                              autocorrect: false,
-                              controller: username,
-                              decoration: InputDecoration(
-                                  prefixIcon:
-                                      Icon(Icons.person, color: Colors.black),
-                                  enabledBorder: const OutlineInputBorder(
-                                      // width: 0.0 produces a thin "hairline" border
-                                      borderSide: const BorderSide(
-                                          color: Colors.black, width: 0.9),
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(15))),
-                                  focusedBorder: const OutlineInputBorder(
-                                    // width: 0.0 produces a thin "hairline" border
-                                    borderSide: const BorderSide(
-                                        color: Colors.black, width: 0.9),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
-                                  ),
-                                  border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: const BorderSide(
-                                          color: Colors.black)),
-                                  labelText: "Username *",
-                                  labelStyle:
-                                      TextStyle(color: Colors.black54))),
-                        ),
+                            height: 45,
+                            child: buildTextFormField(
+                                username,
+                                false,
+                                Icon(Icons.person, color: Colors.black),
+                                null,
+                                "Username *")),
                         SizedBox(
                           height: 20,
                         ),
                         Container(
                           height: 45,
-                          child: TextFormField(
-                              autocorrect: false,
-                              controller: username,
-                              obscureText: true,
-                              decoration: InputDecoration(
-                                  prefixIcon:
-                                      Icon(Icons.lock, color: Colors.black),
-                                  suffixIcon: Icon(
-                                    Icons.visibility,
-                                    color: Colors.black,
-                                  ),
-                                  enabledBorder: const OutlineInputBorder(
-                                      // width: 0.0 produces a thin "hairline" border
-                                      borderSide: const BorderSide(
-                                          color: Colors.black, width: 0.9),
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(15))),
-                                  focusedBorder: const OutlineInputBorder(
-                                    // width: 0.0 produces a thin "hairline" border
-                                    borderSide: const BorderSide(
-                                        color: Colors.black, width: 0.9),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
-                                  ),
-                                  border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: const BorderSide(
-                                          color: Colors.black)),
-                                  labelText: "Password *",
-                                  labelStyle:
-                                      TextStyle(color: Colors.black54))),
+                          child: buildTextFormField(
+                              password,
+                              obscure,
+                              Icon(Icons.lock, color: Colors.black),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    obscure = !obscure;
+                                  });
+                                },
+                                child: obscure
+                                    ? Icon(
+                                        Icons.visibility,
+                                        color: Colors.black,
+                                      )
+                                    : Icon(
+                                        Icons.visibility_off,
+                                        color: Colors.black,
+                                      ),
+                              ),
+                              "Password *"),
                         ),
                         SizedBox(
                           height: 20,
                         ),
                         RaisedButton(
-                          padding: EdgeInsets.fromLTRB(30, 10, 30, 10),
+                          padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                                context, MaterialPageRoute(builder: null));
+                          },
                           color: Colors.black,
                           child: Text(
                             "LOGIN",
@@ -117,5 +90,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ))),
     );
+  }
+
+  TextFormField buildTextFormField(TextEditingController controller,
+      bool obscureText, Icon prefixIcon, Widget suffixIcon, String labelText) {
+    return TextFormField(
+        autocorrect: false,
+        controller: controller,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+            prefixIcon: prefixIcon,
+            suffixIcon: suffixIcon,
+            enabledBorder: const OutlineInputBorder(
+                // width: 0.0 produces a thin "hairline" border
+                borderSide: const BorderSide(color: Colors.black, width: 0.9),
+                borderRadius: BorderRadius.all(Radius.circular(15))),
+            focusedBorder: const OutlineInputBorder(
+              // width: 0.0 produces a thin "hairline" border
+              borderSide: const BorderSide(color: Colors.black, width: 0.9),
+              borderRadius: BorderRadius.all(Radius.circular(15)),
+            ),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(color: Colors.black)),
+            labelText: labelText,
+            labelStyle: TextStyle(color: Colors.black54)));
   }
 }
