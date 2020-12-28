@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:waterconnection/UI/HomePage.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -75,7 +76,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(10)),
                           onPressed: () {
                             Navigator.pushReplacement(
-                                context, MaterialPageRoute(builder: null));
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => HomePage()));
                           },
                           color: Colors.black,
                           child: Text(
