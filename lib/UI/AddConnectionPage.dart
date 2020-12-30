@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddConnectionPage extends StatefulWidget {
   AddConnectionPage({Key key}) : super(key: key);
@@ -22,7 +25,20 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   final _formKey = GlobalKey<FormState>();
   bool ferruleValue;
   bool roadCrossingValue;
+  File imagePath;
+  String fileName;
   bool btnEnabled = false;
+  final ImagePicker _picker = ImagePicker();
+
+  Future getImageFromCamera(BuildContext changeImgContext) async {
+    var image1 = await _picker.getImage(source: ImageSource.camera);
+    setState(() {
+      imagePath = File(image1.path);
+      fileName = imagePath.path.split('/').last;
+    });
+
+    // <---------       END      -------->
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,37 +52,87 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           child: Container(
             height: MediaQuery.of(context).size.height,
             margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-            child: ListView(shrinkWrap: true, children: [
-              buildDropdownButtonFormField("Contractor", selectedCOntractor),
-              buildTextFormField("Consumer Name", null, consumerName, false,
-                  TextInputType.name),
-              buildDropdownButtonFormField("Zone", selectedZone),
-              buildTextFormField("Address", null, consumerAddress, true,
-                  TextInputType.streetAddress),
-              buildTextFormField("Mobile No.", null, consumerMobile, false,
-                  TextInputType.number),
-              buildDropdownButtonFormField("Saddle", selectedZone),
-              buildFerruleRadioButton("Ferrule"),
-              buildRoadCrossingRadioButton("Road Crossing"),
-              Container(
-                width: MediaQuery.of(context).size.width / 2,
-                child: buildTextFormField("MDPE Pipe Length", "mtrs",
-                    mdpePipeLenth, false, TextInputType.number),
-              ),
-              SizedBox(height: 20),
-              RaisedButton(
-                padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                onPressed: btnEnabled ? () {} : null,
-                color: btnEnabled ? Colors.black : Colors.black54,
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                      fontSize: 15, color: Colors.white, letterSpacing: 2),
-                ),
-              )
-            ]),
+            child: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  // shrinkWrap: true,
+                  children: [
+                    buildDropdownButtonFormField(
+                        "Contractor", selectedCOntractor),
+                    buildTextFormField("Consumer Name", null, consumerName,
+                        false, TextInputType.name),
+                    buildDropdownButtonFormField("Zone", selectedZone),
+                    buildTextFormField("Address", null, consumerAddress, true,
+                        TextInputType.streetAddress),
+                    buildTextFormField("Mobile No.", null, consumerMobile,
+                        false, TextInputType.number),
+                    buildDropdownButtonFormField("Saddle", selectedZone),
+                    buildFerruleRadioButton("Ferrule"),
+                    buildRoadCrossingRadioButton("Road Crossing"),
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      width: MediaQuery.of(context).size.width / 3,
+                      child: buildTextFormField("MDPE Pipe Length", "mtrs",
+                          mdpePipeLenth, false, TextInputType.number),
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Container(
+                      // alignment: Alignment.center,
+                      width: fileName != null
+                          ? MediaQuery.of(context).size.width / 3
+                          : MediaQuery.of(context).size.width / 2,
+                      child: OutlineButton(
+                        child: fileName != null
+                            ? Image.file(
+                                imagePath,
+                                height: 150,
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.photo_camera),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    "Add Photo",
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.black,
+                                        letterSpacing: 2),
+                                  ),
+                                ],
+                              ),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        onPressed: () {
+                          getImageFromCamera(context);
+                        },
+                        // icon: fileName != null
+                        //     ? null
+                        //     : Icon(Icons.photo_camera)
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 1,
+                      child: RaisedButton(
+                        padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        onPressed: btnEnabled ? () {} : null,
+                        color: btnEnabled ? Colors.black : Colors.black54,
+                        child: Text(
+                          "Save",
+                          style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              letterSpacing: 2),
+                        ),
+                      ),
+                    ),
+                  ]),
+            ),
           ),
         ),
       ),
@@ -275,13 +341,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   void isEmpty() {
     print("called empty");
-    if (consumerAddress.text != null &&
-        consumerMobile.text != null &&
-        consumerName.text != null &&
-        selectedCOntractor.isNotEmpty &&
-        selectedSaddle.isNotEmpty != null &&
-        selectedZone.isNotEmpty != null &&
-        mdpePipeLenth.text != null) {
+    if (_formKey.currentState.validate()) {
       print("aal fileds filled");
       setState(() {
         btnEnabled = true;
