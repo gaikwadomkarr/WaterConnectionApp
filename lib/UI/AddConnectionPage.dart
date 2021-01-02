@@ -1,8 +1,12 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:waterconnection/Helpers/FlavConfig.dart';
+import 'package:waterconnection/Helpers/NetworkHelprs.dart';
+import 'package:waterconnection/Helpers/SessionData.dart';
 
 class AddConnectionPage extends StatefulWidget {
   AddConnectionPage({Key key}) : super(key: key);
@@ -48,6 +52,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         appBar: AppBar(
             title: Text("Add Connection"), backgroundColor: Colors.green[900]),
         body: Form(
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           key: _formKey,
           child: Container(
             height: MediaQuery.of(context).size.height,
@@ -59,20 +64,20 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                     buildDropdownButtonFormField(
                         "Contractor", selectedCOntractor),
                     buildTextFormField("Consumer Name", null, consumerName,
-                        false, TextInputType.name),
+                        false, TextInputType.name, null),
                     buildDropdownButtonFormField("Zone", selectedZone),
                     buildTextFormField("Address", null, consumerAddress, true,
-                        TextInputType.streetAddress),
+                        TextInputType.streetAddress, null),
                     buildTextFormField("Mobile No.", null, consumerMobile,
-                        false, TextInputType.number),
-                    buildDropdownButtonFormField("Saddle", selectedZone),
+                        false, TextInputType.number, 10),
+                    buildDropdownButtonFormField("Saddle", selectedSaddle),
                     buildFerruleRadioButton("Ferrule"),
                     buildRoadCrossingRadioButton("Road Crossing"),
                     Container(
                       alignment: Alignment.centerLeft,
                       width: MediaQuery.of(context).size.width / 3,
                       child: buildTextFormField("MDPE Pipe Length", "mtrs",
-                          mdpePipeLenth, false, TextInputType.number),
+                          mdpePipeLenth, false, TextInputType.number, null),
                     ),
                     SizedBox(
                       height: 20,
@@ -291,7 +296,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           ),
           new DropdownButtonFormField(
               // itemHeight: 25,
-              autovalidateMode: AutovalidateMode.always,
+              autovalidateMode: AutovalidateMode.disabled,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return "Please select a value";
@@ -359,7 +364,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       String suffixText,
       TextEditingController controller,
       bool expands,
-      TextInputType textInputType) {
+      TextInputType textInputType,
+      int maxLength) {
     return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,12 +382,13 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                 autovalidateMode: AutovalidateMode.disabled,
                 minLines: expands ? null : 1,
                 maxLines: expands ? null : 1,
+                maxLength: maxLength,
                 onChanged: (text) {
                   isEmpty();
                 },
                 validator: (text) {
                   if (controller == consumerMobile) {
-                    if (text.isEmpty || text.length < 11) {
+                    if (text.isEmpty || text.length < 10) {
                       return "Mobile Number should be 10 digits";
                     }
                   } else {
@@ -404,5 +411,36 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         ],
       ),
     );
+  }
+
+  void submitDetails() async {
+    String url = FlavorConfig.instance.url() + "/Login/verify";
+
+    FormData formData = FormData.fromMap({
+      "name": consumerName.text,
+      "address": consumerAddress.text,
+      "zoneId": selectedZone,
+      "saddleId": selectedSaddle,
+      "isFerrule": ferruleValue ? 1 : 0,
+      "isRoadCrossing": roadCrossingValue ? 1 : 0,
+      "pipeSize": mdpePipeLenth.text,
+      "createdBy": 1,
+      "latitude": 22.000,
+      "longitude": 45.000,
+      "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
+    });
+
+    await getDio("formdata").post(url, data: formData).then((response) {
+      print(response.statusCode);
+      print(response.data);
+      if (response.statusCode == 200) {
+        print(response.data["message"]);
+      } else if (response.statusCode == 403) {
+        print(response.data);
+        SessionData().settoken(response.data["new-token"]);
+      } else {
+        print(response.statusMessage);
+      }
+    });
   }
 }
