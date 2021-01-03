@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
 
 void main() {
@@ -9,6 +10,11 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    FlavorConfig(
+        flavor: Flavor.PRODUCTION,
+        appVersion: "1",
+        color: Colors.black,
+        versionCode: 1);
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(

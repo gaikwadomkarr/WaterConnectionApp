@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:waterconnection/Helpers/SessionData.dart';
 
 Dio getDio(String requestType) {
   Dio dio = new Dio();
@@ -13,9 +14,9 @@ Dio getDio(String requestType) {
     dio.options.headers['Content-Type'] = 'multipart/form-data';
     dio.options.headers['Accept'] = '*/*';
   }
-//   if (SessionData().token != null) {
-//     dio.options.headers['Authorization'] = 'Bearer ' + SessionData().token;
-//   }
+  if (SessionData().data.token != null) {
+    dio.options.headers['Authorization'] = 'Bearer ' + SessionData().data.token;
+  }
   //dio.interceptors.add(DioFirebasePerformanceInterceptor());
   dio.options.responseType = ResponseType.json;
 

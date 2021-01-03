@@ -1,12 +1,14 @@
 import 'dart:io';
-
+import 'package:path/path.dart';
 import 'package:dio/dio.dart';
+import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
 import 'package:waterconnection/Helpers/SessionData.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AddConnectionPage extends StatefulWidget {
   AddConnectionPage({Key key}) : super(key: key);
@@ -31,7 +33,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   bool roadCrossingValue;
   File imagePath;
   String fileName;
-  bool btnEnabled = false;
+  bool btnEnabled = true;
   final ImagePicker _picker = ImagePicker();
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
@@ -125,7 +127,11 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                         padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        onPressed: btnEnabled ? () {} : null,
+                        onPressed: btnEnabled
+                            ? () {
+                                submitDetails();
+                              }
+                            : null,
                         color: btnEnabled ? Colors.black : Colors.black54,
                         child: Text(
                           "Save",
@@ -413,34 +419,54 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     );
   }
 
+  Future<String> get _localPath async {
+    final directory = await getExternalStorageDirectory();
+
+    return directory.path;
+  }
+
   void submitDetails() async {
     String url = FlavorConfig.instance.url() + "/Login/verify";
-
-    FormData formData = FormData.fromMap({
-      "name": consumerName.text,
-      "address": consumerAddress.text,
-      "zoneId": selectedZone,
-      "saddleId": selectedSaddle,
-      "isFerrule": ferruleValue ? 1 : 0,
-      "isRoadCrossing": roadCrossingValue ? 1 : 0,
-      "pipeSize": mdpePipeLenth.text,
-      "createdBy": 1,
-      "latitude": 22.000,
-      "longitude": 45.000,
-      "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
+    Excel excel = Excel.createExcel();
+    Sheet sheetObject = excel["Excel 1"];
+    var cell = sheetObject.cell(CellIndex.indexByString("A1"));
+    cell.value = "Omkar Gaikwad";
+    print("CellType: " + cell.cellType.toString());
+    final filePath = await _localPath;
+    String outputFile = filePath + "/r.xlsx";
+    print(outputFile.toString());
+    excel.encode().then((onValue) {
+      File(join(outputFile))
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(onValue);
     });
 
-    await getDio("formdata").post(url, data: formData).then((response) {
-      print(response.statusCode);
-      print(response.data);
-      if (response.statusCode == 200) {
-        print(response.data["message"]);
-      } else if (response.statusCode == 403) {
-        print(response.data);
-        SessionData().settoken(response.data["new-token"]);
-      } else {
-        print(response.statusMessage);
-      }
-    });
+    // FormData formData = FormData.fromMap({
+    //   "name": consumerName.text,
+    //   "address": consumerAddress.text,
+    //   "zoneId": selectedZone,
+    //   "saddleId": selectedSaddle,
+    //   "isFerrule": ferruleValue ? 1 : 0,
+    //   "isRoadCrossing": roadCrossingValue ? 1 : 0,
+    //   "pipeSize": mdpePipeLenth.text,
+    //   "createdBy": 1,
+    //   "latitude": 22.000,
+    //   "longitude": 45.000,
+    //   "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
+    // });
+
+    // await getDio("formdata").post(url, data: formData).then((response) {
+    //   print(response.statusCode);
+    //   print(response.data);
+    //   if (response.statusCode == 200) {
+    //     print(response.data["message"]);
+
+    //   } else if (response.statusCode == 403) {
+    //     print(response.data);
+    //     SessionData().settoken(response.data["new-token"]);
+    //   } else {
+    //     print(response.statusMessage);
+    //   }
+    // });
   }
 }
