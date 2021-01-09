@@ -1,14 +1,17 @@
 import 'dart:io';
-import 'package:path/path.dart';
 import 'package:dio/dio.dart';
+import 'package:path/path.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
 import 'package:waterconnection/Helpers/SessionData.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:waterconnection/Models/GetContractors.dart';
+import 'package:waterconnection/Models/GetSaddles.dart';
+import 'package:waterconnection/Models/GetZones.dart';
 
 class AddConnectionPage extends StatefulWidget {
   AddConnectionPage({Key key}) : super(key: key);
@@ -28,13 +31,27 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   TextEditingController consumerAddress = new TextEditingController();
   TextEditingController consumerMobile = new TextEditingController();
   TextEditingController mdpePipeLenth = new TextEditingController();
+  List<DropdownMenuItem<String>> tempContractors = [];
+  List<DropdownMenuItem<String>> tempSaddles = [];
+  List<DropdownMenuItem<String>> tempZones = [];
   final _formKey = GlobalKey<FormState>();
+  GetContractors getContractors;
+  GetSaddles getSaddles;
+  GetZones getZones;
   bool ferruleValue;
   bool roadCrossingValue;
   File imagePath;
   String fileName;
   bool btnEnabled = true;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    getContractorsApi();
+    getSaddlesApi();
+    getZonesApi();
+  }
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
     var image1 = await _picker.getImage(source: ImageSource.camera);
@@ -64,20 +81,22 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                   // shrinkWrap: true,
                   children: [
                     buildDropdownButtonFormField(
-                        "Contractor", selectedCOntractor),
+                        "Contractor", selectedCOntractor, tempContractors),
                     buildTextFormField("Consumer Name", null, consumerName,
                         false, TextInputType.name, null),
-                    buildDropdownButtonFormField("Zone", selectedZone),
+                    buildDropdownButtonFormField(
+                        "Zone", selectedZone, tempZones),
                     buildTextFormField("Address", null, consumerAddress, true,
                         TextInputType.streetAddress, null),
                     buildTextFormField("Mobile No.", null, consumerMobile,
                         false, TextInputType.number, 10),
-                    buildDropdownButtonFormField("Saddle", selectedSaddle),
+                    buildDropdownButtonFormField(
+                        "Saddle", selectedSaddle, tempSaddles),
                     buildFerruleRadioButton("Ferrule"),
                     buildRoadCrossingRadioButton("Road Crossing"),
                     Container(
                       alignment: Alignment.centerLeft,
-                      width: MediaQuery.of(context).size.width / 3,
+                      width: MediaQuery.of(context).size.width / 2.8,
                       child: buildTextFormField("MDPE Pipe Length", "mtrs",
                           mdpePipeLenth, false, TextInputType.number, null),
                     ),
@@ -129,7 +148,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                             borderRadius: BorderRadius.circular(10)),
                         onPressed: btnEnabled
                             ? () {
-                                submitDetails();
+                                isEmpty();
                               }
                             : null,
                         color: btnEnabled ? Colors.black : Colors.black54,
@@ -288,7 +307,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     );
   }
 
-  Container buildDropdownButtonFormField(String fieldName, String valueHolder) {
+  Container buildDropdownButtonFormField(String fieldName, String valueHolder,
+      List<DropdownMenuItem<String>> data) {
     return Container(
       // height: 45,
       child: Column(
@@ -303,12 +323,12 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           new DropdownButtonFormField(
               // itemHeight: 25,
               autovalidateMode: AutovalidateMode.disabled,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return "Please select a value";
-                }
-                return null;
-              },
+              // validator: (value) {
+              //   if (value == null || value.isEmpty) {
+              //     return "Please select a value";
+              //   }
+              //   return null;
+              // },
               value: valueHolder,
               isExpanded: true,
               // underline: Container(
@@ -324,12 +344,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                   //     ),
                   enabledBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.black26))),
-              items: <String>['A', 'B', 'C', 'D'].map((String value) {
-                return new DropdownMenuItem<String>(
-                  value: value,
-                  child: new Text(value),
-                );
-              }).toList(),
+              items: data,
               onChanged: (String newValue) {
                 setState(() {
                   print(newValue);
@@ -343,7 +358,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                   valueHolder = newValue;
                   print(valueHolder);
                 });
-                isEmpty();
+                // isEmpty();
               }),
         ],
       ),
@@ -390,20 +405,20 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                 maxLines: expands ? null : 1,
                 maxLength: maxLength,
                 onChanged: (text) {
-                  isEmpty();
+                  // isEmpty();
                 },
-                validator: (text) {
-                  if (controller == consumerMobile) {
-                    if (text.isEmpty || text.length < 10) {
-                      return "Mobile Number should be 10 digits";
-                    }
-                  } else {
-                    if (text.isEmpty) {
-                      return "Field should not be empty";
-                    }
-                  }
-                  return null;
-                },
+                // validator: (text) {
+                //   if (controller == consumerMobile) {
+                //     if (text.isEmpty || text.length < 10) {
+                //       return "Mobile Number should be 10 digits";
+                //     }
+                //   } else {
+                //     if (text.isEmpty) {
+                //       return "Field should not be empty";
+                //     }
+                //   }
+                //   return null;
+                // },
                 enableSuggestions: true,
                 autocorrect: false,
                 keyboardType: textInputType,
@@ -425,48 +440,114 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     return directory.path;
   }
 
+  void getContractorsApi() async {
+    print("this is token from sessiondata => " +
+        SessionData().data.token.toString());
+    String getContractorUrl =
+        FlavorConfig.instance.url() + "/Master/getContracters";
+    print(getContractorUrl);
+    await getDio("json").post(getContractorUrl).then((response) {
+      print("this is getcontractor api ${response.statusCode}");
+      print("this is getcontractor api ${response.data}");
+
+      if (response.statusCode == 200) {
+        getContractors = GetContractors.fromJson(response.data);
+        getContractors.data.forEach((e) {
+          tempContractors.add(
+              DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
+          setState(() {});
+        });
+        print(getContractors.data[0].name);
+      } else {}
+      // var data = response.data as List;
+    });
+  }
+
+  void getSaddlesApi() async {
+    print("this is token from sessiondata => " +
+        SessionData().data.token.toString());
+    String getSaddlesUrl = FlavorConfig.instance.url() + "/Master/getSaddles";
+    print(getSaddlesUrl);
+    await getDio("json").post(getSaddlesUrl).then((response) {
+      print("this is getcontractor api ${response.statusCode}");
+      print("this is getcontractor api ${response.data}");
+
+      if (response.statusCode == 200) {
+        getSaddles = GetSaddles.fromJson(response.data);
+        getSaddles.data.forEach((e) {
+          tempSaddles.add(DropdownMenuItem(
+              value: e.id.toString(), child: Text(e.saddleName)));
+          setState(() {});
+        });
+        print(getSaddles.data[0].saddleName);
+      } else {}
+      // var data = response.data as List;
+    });
+  }
+
+  void getZonesApi() async {
+    print("this is token from sessiondata => " +
+        SessionData().data.token.toString());
+    String getZonesUrl = FlavorConfig.instance.url() + "/Master/getZones";
+    print(getZonesUrl);
+    await getDio("json").post(getZonesUrl).then((response) {
+      print("this is getcontractor api ${response.statusCode}");
+      print("this is getcontractor api ${response.data}");
+
+      if (response.statusCode == 200) {
+        getZones = GetZones.fromJson(response.data);
+        getZones.data.forEach((e) {
+          tempZones.add(DropdownMenuItem(
+              value: e.id.toString(), child: Text(e.zoneName)));
+          setState(() {});
+        });
+        print(getZones.data[0].zoneName);
+      } else {}
+      // var data = response.data as List;
+    });
+  }
+
   void submitDetails() async {
-    String url = FlavorConfig.instance.url() + "/Login/verify";
-    Excel excel = Excel.createExcel();
-    Sheet sheetObject = excel["Excel 1"];
-    var cell = sheetObject.cell(CellIndex.indexByString("A1"));
-    cell.value = "Omkar Gaikwad";
-    print("CellType: " + cell.cellType.toString());
-    final filePath = await _localPath;
-    String outputFile = filePath + "/r.xlsx";
-    print(outputFile.toString());
-    excel.encode().then((onValue) {
-      File(join(outputFile))
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(onValue);
+    String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
+    // Excel excel = Excel.createExcel();
+    // Sheet sheetObject = excel["Excel 1"];
+    // var cell = sheetObject.cell(CellIndex.indexByString("A1"));
+    // cell.value = "Omkar Gaikwad";
+    // print("CellType: " + cell.cellType.toString());
+    // final filePath = await _localPath;
+    // String outputFile = filePath + "/r.xlsx";
+    // print(outputFile.toString());
+    // excel.encode().then((onValue) {
+    //   File(join(outputFile))
+    //     ..createSync(recursive: true)
+    //     ..writeAsBytesSync(onValue);
+    // });
+
+    FormData formData = FormData.fromMap({
+      "name": consumerName.text,
+      "address": consumerAddress.text,
+      "zoneId": selectedZone,
+      "saddleId": selectedSaddle,
+      "isFerrule": ferruleValue ? 1 : 0,
+      "isRoadCrossing": roadCrossingValue ? 1 : 0,
+      "pipeSize": mdpePipeLenth.text,
+      "createdBy": 1,
+      "latitude": 22.000,
+      "longitude": 45.000,
+      "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
     });
 
-    // FormData formData = FormData.fromMap({
-    //   "name": consumerName.text,
-    //   "address": consumerAddress.text,
-    //   "zoneId": selectedZone,
-    //   "saddleId": selectedSaddle,
-    //   "isFerrule": ferruleValue ? 1 : 0,
-    //   "isRoadCrossing": roadCrossingValue ? 1 : 0,
-    //   "pipeSize": mdpePipeLenth.text,
-    //   "createdBy": 1,
-    //   "latitude": 22.000,
-    //   "longitude": 45.000,
-    //   "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
-    // });
-
-    // await getDio("formdata").post(url, data: formData).then((response) {
-    //   print(response.statusCode);
-    //   print(response.data);
-    //   if (response.statusCode == 200) {
-    //     print(response.data["message"]);
-
-    //   } else if (response.statusCode == 403) {
-    //     print(response.data);
-    //     SessionData().settoken(response.data["new-token"]);
-    //   } else {
-    //     print(response.statusMessage);
-    //   }
-    // });
+    await getDio("formdata").post(url, data: formData).then((response) {
+      print(response.statusCode);
+      print(response.data);
+      if (response.statusCode == 200) {
+        print(response.data["message"]);
+      } else if (response.statusCode == 403) {
+        print(response.data);
+        SessionData().settoken(response.data["new-token"]);
+      } else {
+        print(response.statusMessage);
+      }
+    });
   }
 }

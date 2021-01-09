@@ -33,7 +33,7 @@ class FlavorConfig {
   }
 
   String url() {
-    var url = 'http://';
+    var url = 'https://';
     if (isQA()) {
       url += 'qa';
     } else if (isDevelopment()) {
@@ -47,7 +47,7 @@ class FlavorConfig {
   }
 
   String updateUrl() {
-    var url = 'http://';
+    var url = 'https://';
     if (isQA()) {
       url += 'qa';
     } else if (isDevelopment()) {

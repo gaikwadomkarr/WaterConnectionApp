@@ -149,14 +149,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void hitLoginApi() async {
     Dio dio = new Dio();
-    // dio.options.headers['Content-Type'] = 'application/json';
-    // dio.options.headers['Accept'] = 'application/json';
+    dio.options.headers['Content-Type'] = 'application/json';
+    dio.options.headers['Accept'] = 'application/json';
 
     setState(() {
       isLoggingin = true;
     });
     if (_formKey.currentState.validate()) {
-      String url = FlavorConfig.instance.url() + "/Auth/get";
+      String url = FlavorConfig.instance.url() + "/Login/verify";
       print("this is login url => " + url);
       prefs = await SharedPreferences.getInstance();
       FormData formData = FormData.fromMap(
@@ -164,16 +164,9 @@ class _LoginScreenState extends State<LoginScreen> {
       print(formData.fields);
       try {
         await dio
-            .get(
+            .post(
           url,
-          options: Options(
-            followRedirects: false,
-            validateStatus: (status) {
-              print("this is status code " + status.toString());
-              return status < 500;
-            },
-            headers: {'Content-Type': 'application/json'},
-          ),
+          data: formData,
         )
             .then((response) {
           print(response.statusCode);
@@ -198,7 +191,10 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         });
       } on DioError catch (e) {
-        print("this is error => " + e.error);
+        setState(() {
+          isLoggingin = false;
+        });
+        print("this is error => " + e.message);
       }
     } else {
       setState(() {
