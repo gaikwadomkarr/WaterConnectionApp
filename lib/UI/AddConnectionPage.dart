@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flushbar/flushbar_route.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:path/path.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
@@ -35,6 +38,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   List<DropdownMenuItem<String>> tempSaddles = [];
   List<DropdownMenuItem<String>> tempZones = [];
   final _formKey = GlobalKey<FormState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   GetContractors getContractors;
   GetSaddles getSaddles;
   GetZones getZones;
@@ -43,14 +47,29 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   File imagePath;
   String fileName;
   bool btnEnabled = true;
+  bool _isLoading = false;
+  int getApiCount = 0;
+  String latitude;
+  String longitude;
   final ImagePicker _picker = ImagePicker();
+  Position _currentPosition;
 
   @override
   void initState() {
     super.initState();
+    _getCurrentLocation();
     getContractorsApi();
     getSaddlesApi();
     getZonesApi();
+  }
+
+  _getCurrentLocation() async {
+    Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+        .then((value) => {
+              setState(() {
+                _currentPosition = value;
+              })
+            });
   }
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
@@ -65,103 +84,131 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-            title: Text("Add Connection"), backgroundColor: Colors.green[900]),
-        body: Form(
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          key: _formKey,
-          child: Container(
-            height: MediaQuery.of(context).size.height,
-            margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-            child: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                  // shrinkWrap: true,
-                  children: [
-                    buildDropdownButtonFormField(
-                        "Contractor", selectedCOntractor, tempContractors),
-                    buildTextFormField("Consumer Name", null, consumerName,
-                        false, TextInputType.name, null),
-                    buildDropdownButtonFormField(
-                        "Zone", selectedZone, tempZones),
-                    buildTextFormField("Address", null, consumerAddress, true,
-                        TextInputType.streetAddress, null),
-                    buildTextFormField("Mobile No.", null, consumerMobile,
-                        false, TextInputType.number, 10),
-                    buildDropdownButtonFormField(
-                        "Saddle", selectedSaddle, tempSaddles),
-                    buildFerruleRadioButton("Ferrule"),
-                    buildRoadCrossingRadioButton("Road Crossing"),
-                    Container(
-                      alignment: Alignment.centerLeft,
-                      width: MediaQuery.of(context).size.width / 2.8,
-                      child: buildTextFormField("MDPE Pipe Length", "mtrs",
-                          mdpePipeLenth, false, TextInputType.number, null),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Container(
-                      // alignment: Alignment.center,
-                      width: fileName != null
-                          ? MediaQuery.of(context).size.width / 3
-                          : MediaQuery.of(context).size.width / 2,
-                      child: OutlineButton(
-                        child: fileName != null
-                            ? Image.file(
-                                imagePath,
-                                height: 150,
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.photo_camera),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    "Add Photo",
-                                    style: TextStyle(
-                                        fontSize: 15,
-                                        color: Colors.black,
-                                        letterSpacing: 2),
-                                  ),
-                                ],
-                              ),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        onPressed: () {
-                          getImageFromCamera(context);
-                        },
-                        // icon: fileName != null
-                        //     ? null
-                        //     : Icon(Icons.photo_camera)
+    return ModalProgressHUD(
+      inAsyncCall: _isLoading,
+      child: SafeArea(
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+              title: Text("Add Connection"),
+              backgroundColor: Colors.green[900]),
+          body: Form(
+            key: _formKey,
+            child: Container(
+              height: MediaQuery.of(context).size.height,
+              margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
+              child: SingleChildScrollView(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                    // shrinkWrap: true,
+                    children: [
+                      buildDropdownButtonFormField(
+                          "Contractor", selectedCOntractor, tempContractors),
+                      buildTextFormField(
+                          "Consumer Name",
+                          null,
+                          consumerName,
+                          false,
+                          TextInputType.name,
+                          null,
+                          AutovalidateMode.onUserInteraction),
+                      buildDropdownButtonFormField(
+                          "Zone", selectedZone, tempZones),
+                      buildTextFormField(
+                          "Address",
+                          null,
+                          consumerAddress,
+                          true,
+                          TextInputType.streetAddress,
+                          null,
+                          AutovalidateMode.onUserInteraction),
+                      buildTextFormField(
+                          "Mobile No.",
+                          null,
+                          consumerMobile,
+                          false,
+                          TextInputType.number,
+                          10,
+                          AutovalidateMode.onUserInteraction),
+                      buildDropdownButtonFormField(
+                          "Saddle", selectedSaddle, tempSaddles),
+                      buildFerruleRadioButton("Ferrule"),
+                      buildRoadCrossingRadioButton("Road Crossing"),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        width: MediaQuery.of(context).size.width / 2.8,
+                        child: buildTextFormField(
+                            "MDPE Pipe Length",
+                            "mtrs",
+                            mdpePipeLenth,
+                            false,
+                            TextInputType.number,
+                            null,
+                            AutovalidateMode.onUserInteraction),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    Container(
-                      width: MediaQuery.of(context).size.width / 1,
-                      child: RaisedButton(
-                        padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        onPressed: btnEnabled
-                            ? () {
-                                isEmpty();
-                              }
-                            : null,
-                        color: btnEnabled ? Colors.black : Colors.black54,
-                        child: Text(
-                          "Save",
-                          style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                              letterSpacing: 2),
+                      SizedBox(
+                        height: 20,
+                      ),
+                      Container(
+                        // alignment: Alignment.center,
+                        width: fileName != null
+                            ? MediaQuery.of(context).size.width / 3
+                            : MediaQuery.of(context).size.width / 2,
+                        child: OutlineButton(
+                          child: fileName != null
+                              ? Image.file(
+                                  imagePath,
+                                  height: 150,
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.photo_camera),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      "Add Photo",
+                                      style: TextStyle(
+                                          fontSize: 15,
+                                          color: Colors.black,
+                                          letterSpacing: 2),
+                                    ),
+                                  ],
+                                ),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          onPressed: () {
+                            getImageFromCamera(context);
+                          },
+                          // icon: fileName != null
+                          //     ? null
+                          //     : Icon(Icons.photo_camera)
                         ),
                       ),
-                    ),
-                  ]),
+                      SizedBox(height: 20),
+                      Container(
+                        width: MediaQuery.of(context).size.width / 1,
+                        child: RaisedButton(
+                          padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          onPressed: btnEnabled
+                              ? () {
+                                  isEmpty(context);
+                                }
+                              : null,
+                          color: btnEnabled ? Colors.black : Colors.black54,
+                          child: Text(
+                            "Save",
+                            style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white,
+                                letterSpacing: 2),
+                          ),
+                        ),
+                      ),
+                    ]),
+              ),
             ),
           ),
         ),
@@ -322,13 +369,13 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           ),
           new DropdownButtonFormField(
               // itemHeight: 25,
-              autovalidateMode: AutovalidateMode.disabled,
-              // validator: (value) {
-              //   if (value == null || value.isEmpty) {
-              //     return "Please select a value";
-              //   }
-              //   return null;
-              // },
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return "Please select a value";
+                }
+                return null;
+              },
               value: valueHolder,
               isExpanded: true,
               // underline: Container(
@@ -365,18 +412,33 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     );
   }
 
-  void isEmpty() {
+  void isEmpty(BuildContext context) {
     print("called empty");
+    var flag = 0;
     if (_formKey.currentState.validate()) {
       print("aal fileds filled");
-      setState(() {
-        btnEnabled = true;
-      });
+      if (ferruleValue == null) {
+        flag = 1;
+        showInFlushBar(context, "Please select Ferrule value", _scaffoldKey);
+        return;
+      }
+      if (roadCrossingValue == null) {
+        flag = 1;
+        showInFlushBar(
+            context, "Please select Road Crossing value", _scaffoldKey);
+        return;
+      }
+      if (imagePath == null) {
+        flag = 1;
+        showInFlushBar(context, "Please select image", _scaffoldKey);
+        return;
+      }
+
+      if (flag == 0) {
+        submitDetails(context);
+      }
     } else {
       print("aal fileds not filled");
-      setState(() {
-        btnEnabled = false;
-      });
     }
   }
 
@@ -386,7 +448,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       TextEditingController controller,
       bool expands,
       TextInputType textInputType,
-      int maxLength) {
+      int maxLength,
+      AutovalidateMode autovalidateMode) {
     return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,25 +463,25 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           Container(
             // height: 40,
             child: TextFormField(
-                autovalidateMode: AutovalidateMode.disabled,
+                autovalidateMode: autovalidateMode,
                 minLines: expands ? null : 1,
                 maxLines: expands ? null : 1,
                 maxLength: maxLength,
                 onChanged: (text) {
                   // isEmpty();
                 },
-                // validator: (text) {
-                //   if (controller == consumerMobile) {
-                //     if (text.isEmpty || text.length < 10) {
-                //       return "Mobile Number should be 10 digits";
-                //     }
-                //   } else {
-                //     if (text.isEmpty) {
-                //       return "Field should not be empty";
-                //     }
-                //   }
-                //   return null;
-                // },
+                validator: (text) {
+                  if (controller == consumerMobile) {
+                    if (text.isEmpty || text.length < 10) {
+                      return "Mobile Number should be 10 digits";
+                    }
+                  } else {
+                    if (text.isEmpty) {
+                      return "Field should not be empty";
+                    }
+                  }
+                  return null;
+                },
                 enableSuggestions: true,
                 autocorrect: false,
                 keyboardType: textInputType,
@@ -441,73 +504,103 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   }
 
   void getContractorsApi() async {
+    setState(() {
+      _isLoading = true;
+    });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
     String getContractorUrl =
         FlavorConfig.instance.url() + "/Master/getContracters";
     print(getContractorUrl);
-    await getDio("json").post(getContractorUrl).then((response) {
+    await getDio("json").get(getContractorUrl).then((response) {
       print("this is getcontractor api ${response.statusCode}");
       print("this is getcontractor api ${response.data}");
 
       if (response.statusCode == 200) {
         getContractors = GetContractors.fromJson(response.data);
+        setState(() {
+          _isLoading = false;
+        });
         getContractors.data.forEach((e) {
           tempContractors.add(
               DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
           setState(() {});
         });
         print(getContractors.data[0].name);
-      } else {}
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       // var data = response.data as List;
     });
   }
 
   void getSaddlesApi() async {
+    setState(() {
+      _isLoading = true;
+    });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
     String getSaddlesUrl = FlavorConfig.instance.url() + "/Master/getSaddles";
     print(getSaddlesUrl);
-    await getDio("json").post(getSaddlesUrl).then((response) {
+    await getDio("json").get(getSaddlesUrl).then((response) {
       print("this is getcontractor api ${response.statusCode}");
       print("this is getcontractor api ${response.data}");
 
       if (response.statusCode == 200) {
         getSaddles = GetSaddles.fromJson(response.data);
+        setState(() {
+          _isLoading = false;
+        });
         getSaddles.data.forEach((e) {
           tempSaddles.add(DropdownMenuItem(
               value: e.id.toString(), child: Text(e.saddleName)));
           setState(() {});
         });
         print(getSaddles.data[0].saddleName);
-      } else {}
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       // var data = response.data as List;
     });
   }
 
   void getZonesApi() async {
+    setState(() {
+      _isLoading = true;
+    });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
     String getZonesUrl = FlavorConfig.instance.url() + "/Master/getZones";
     print(getZonesUrl);
-    await getDio("json").post(getZonesUrl).then((response) {
+    await getDio("json").get(getZonesUrl).then((response) {
       print("this is getcontractor api ${response.statusCode}");
       print("this is getcontractor api ${response.data}");
 
       if (response.statusCode == 200) {
         getZones = GetZones.fromJson(response.data);
+        setState(() {
+          _isLoading = false;
+        });
         getZones.data.forEach((e) {
           tempZones.add(DropdownMenuItem(
               value: e.id.toString(), child: Text(e.zoneName)));
           setState(() {});
         });
         print(getZones.data[0].zoneName);
-      } else {}
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       // var data = response.data as List;
     });
   }
 
-  void submitDetails() async {
+  void submitDetails(BuildContext context) async {
     String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
     // Excel excel = Excel.createExcel();
     // Sheet sheetObject = excel["Excel 1"];
@@ -525,27 +618,54 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
     FormData formData = FormData.fromMap({
       "name": consumerName.text,
+      "createdBy": SessionData().data.id,
       "address": consumerAddress.text,
-      "zoneId": selectedZone,
-      "saddleId": selectedSaddle,
+      "contractorId": int.parse(selectedCOntractor),
+      "zoneId": int.parse(selectedZone),
+      "saddleId": int.parse(selectedSaddle),
       "isFerrule": ferruleValue ? 1 : 0,
       "isRoadCrossing": roadCrossingValue ? 1 : 0,
       "pipeSize": mdpePipeLenth.text,
-      "createdBy": 1,
-      "latitude": 22.000,
-      "longitude": 45.000,
+      "lat": _currentPosition.latitude.toString(),
+      "lang": _currentPosition.longitude.toString(),
       "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
     });
+
+    print(formData.fields);
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    print("this is add conection api => $url");
 
     await getDio("formdata").post(url, data: formData).then((response) {
       print(response.statusCode);
       print(response.data);
       if (response.statusCode == 200) {
+        setState(() {
+          _isLoading = false;
+        });
+        _formKey.currentState.reset();
+        setState(() {
+          ferruleValue = null;
+          roadCrossingValue = null;
+          imagePath = null;
+          fileName = null;
+        });
         print(response.data["message"]);
+        showInFlushBar(context, response.data["message"], _scaffoldKey);
       } else if (response.statusCode == 403) {
+        setState(() {
+          _isLoading = false;
+        });
         print(response.data);
+        showInFlushBar(context, response.data["message"], _scaffoldKey);
         SessionData().settoken(response.data["new-token"]);
       } else {
+        setState(() {
+          _isLoading = false;
+        });
         print(response.statusMessage);
       }
     });
