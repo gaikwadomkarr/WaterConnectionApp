@@ -37,7 +37,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   List<DropdownMenuItem<String>> tempContractors = [];
   List<DropdownMenuItem<String>> tempSaddles = [];
   List<DropdownMenuItem<String>> tempZones = [];
-  final _formKey = GlobalKey<FormState>();
+  final _formKeyConnection = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   GetContractors getContractors;
   GetSaddles getSaddles;
@@ -53,6 +53,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   String longitude;
   final ImagePicker _picker = ImagePicker();
   Position _currentPosition;
+  AutovalidateMode formAutoValidate = AutovalidateMode.disabled;
 
   @override
   void initState() {
@@ -94,7 +95,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
               title: Text("Add Connection"),
               backgroundColor: Colors.green[900]),
           body: Form(
-            key: _formKey,
+            key: _formKeyConnection,
+            autovalidateMode: formAutoValidate,
             child: Container(
               height: MediaQuery.of(context).size.height,
               margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
@@ -369,6 +371,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           ),
           new DropdownButtonFormField(
               // itemHeight: 25,
+
               autovalidateMode: AutovalidateMode.onUserInteraction,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -415,7 +418,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   void isEmpty(BuildContext context) {
     print("called empty");
     var flag = 0;
-    if (_formKey.currentState.validate()) {
+    if (_formKeyConnection.currentState.validate()) {
       print("aal fileds filled");
       if (ferruleValue == null) {
         flag = 1;
@@ -467,12 +470,9 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                 minLines: expands ? null : 1,
                 maxLines: expands ? null : 1,
                 maxLength: maxLength,
-                onChanged: (text) {
-                  // isEmpty();
-                },
                 validator: (text) {
                   if (controller == consumerMobile) {
-                    if (text.isEmpty || text.length < 10) {
+                    if (text.isEmpty || text.length < 10 || text.length > 10) {
                       return "Mobile Number should be 10 digits";
                     }
                   } else {
@@ -602,6 +602,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   void submitDetails(BuildContext context) async {
     String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
+
     // Excel excel = Excel.createExcel();
     // Sheet sheetObject = excel["Excel 1"];
     // var cell = sheetObject.cell(CellIndex.indexByString("A1"));
@@ -615,7 +616,9 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     //     ..createSync(recursive: true)
     //     ..writeAsBytesSync(onValue);
     // });
-
+    setState(() {
+      formAutoValidate = AutovalidateMode.always;
+    });
     FormData formData = FormData.fromMap({
       "name": consumerName.text,
       "createdBy": SessionData().data.id,
@@ -638,36 +641,54 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     });
 
     print("this is add conection api => $url");
-
-    await getDio("formdata").post(url, data: formData).then((response) {
-      print(response.statusCode);
-      print(response.data);
-      if (response.statusCode == 200) {
-        setState(() {
-          _isLoading = false;
-        });
-        _formKey.currentState.reset();
-        setState(() {
-          ferruleValue = null;
-          roadCrossingValue = null;
-          imagePath = null;
-          fileName = null;
-        });
-        print(response.data["message"]);
-        showInFlushBar(context, response.data["message"], _scaffoldKey);
-      } else if (response.statusCode == 403) {
-        setState(() {
-          _isLoading = false;
-        });
+    try {
+      await getDio("formdata").post(url, data: formData).then((response) {
+        print(response.statusCode);
         print(response.data);
-        showInFlushBar(context, response.data["message"], _scaffoldKey);
-        SessionData().settoken(response.data["new-token"]);
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-        print(response.statusMessage);
-      }
-    });
+        if (response.statusCode == 200) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          setState(() {
+            // consumerName.clear();
+            // consumerAddress.clear();
+            // consumerMobile.clear();
+            // mdpePipeLenth.clear();
+            // selectedCOntractor = null;
+            // selectedSaddle = null;
+            // selectedZone = null;
+            ferruleValue = null;
+            roadCrossingValue = null;
+            imagePath = null;
+            fileName = null;
+          });
+          _formKeyConnection.currentState.reset();
+          setState(() {
+            formAutoValidate = AutovalidateMode.disabled;
+          });
+          print(response.data["message"]);
+          showInFlushBar(context, response.data["message"], _scaffoldKey);
+        } else if (response.statusCode == 403) {
+          setState(() {
+            _isLoading = false;
+          });
+          print(response.data);
+          showInFlushBar(context, response.data["message"], _scaffoldKey);
+          SessionData().settoken(response.data["new-token"]);
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          print(response.statusMessage);
+        }
+      });
+    } on DioError catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("this is error => " + e.response.data[0]["message"]);
+      showInFlushBar(context, e.response.data[0]["message"], _scaffoldKey);
+    }
   }
 }

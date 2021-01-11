@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController username = new TextEditingController();
   TextEditingController password = new TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool obscure = true;
   SharedPreferences prefs;
   bool isLoggingin = false;
@@ -62,11 +63,13 @@ class _LoginScreenState extends State<LoginScreen> {
         onWillPop: () async => false,
         child: SafeArea(
             child: Scaffold(
+                key: _scaffoldKey,
                 backgroundColor: Colors.white,
                 body: Form(
                   key: _formKey,
                   child: Center(
                     child: Container(
+                      height: MediaQuery.of(context).size.height,
                       margin: EdgeInsets.all(30),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -79,41 +82,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(
                               height: 20,
                             ),
-                            Container(
-                                height: 45,
-                                child: buildTextFormField(
-                                    username,
-                                    false,
-                                    Icon(Icons.person, color: Colors.black),
-                                    null,
-                                    "Username *")),
+                            buildTextFormField(
+                                username,
+                                false,
+                                Icon(Icons.person, color: Colors.black),
+                                null,
+                                "Username *"),
                             SizedBox(
                               height: 20,
                             ),
-                            Container(
-                              height: 45,
-                              child: buildTextFormField(
-                                  password,
-                                  obscure,
-                                  Icon(Icons.lock, color: Colors.black),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        obscure = !obscure;
-                                      });
-                                    },
-                                    child: obscure
-                                        ? Icon(
-                                            Icons.visibility,
-                                            color: Colors.black,
-                                          )
-                                        : Icon(
-                                            Icons.visibility_off,
-                                            color: Colors.black,
-                                          ),
-                                  ),
-                                  "Password *"),
-                            ),
+                            buildTextFormField(
+                                password,
+                                obscure,
+                                Icon(Icons.lock, color: Colors.black),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      obscure = !obscure;
+                                    });
+                                  },
+                                  child: obscure
+                                      ? Icon(
+                                          Icons.visibility,
+                                          color: Colors.black,
+                                        )
+                                      : Icon(
+                                          Icons.visibility_off,
+                                          color: Colors.black,
+                                        ),
+                                ),
+                                "Password *"),
                             SizedBox(
                               height: 20,
                             ),
@@ -141,39 +139,41 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  TextFormField buildTextFormField(TextEditingController controller,
+  Container buildTextFormField(TextEditingController controller,
       bool obscureText, Icon prefixIcon, Widget suffixIcon, String labelText) {
-    return TextFormField(
-        autocorrect: false,
-        controller: controller,
-        obscureText: obscureText,
-        validator: (text) {
-          if (text.isEmpty) {
-            if (controller == username) {
-              return "Username cannot be empty";
-            } else {
-              return "Password cannot be empty";
+    return Container(
+      child: TextFormField(
+          autocorrect: false,
+          controller: controller,
+          obscureText: obscureText,
+          validator: (text) {
+            if (text.isEmpty) {
+              if (controller == username) {
+                return "Username cannot be empty";
+              } else {
+                return "Password cannot be empty";
+              }
             }
-          }
-          return null;
-        },
-        decoration: InputDecoration(
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            enabledBorder: const OutlineInputBorder(
+            return null;
+          },
+          decoration: InputDecoration(
+              prefixIcon: prefixIcon,
+              suffixIcon: suffixIcon,
+              enabledBorder: const OutlineInputBorder(
+                  // width: 0.0 produces a thin "hairline" border
+                  borderSide: const BorderSide(color: Colors.black, width: 0.9),
+                  borderRadius: BorderRadius.all(Radius.circular(15))),
+              focusedBorder: const OutlineInputBorder(
                 // width: 0.0 produces a thin "hairline" border
                 borderSide: const BorderSide(color: Colors.black, width: 0.9),
-                borderRadius: BorderRadius.all(Radius.circular(15))),
-            focusedBorder: const OutlineInputBorder(
-              // width: 0.0 produces a thin "hairline" border
-              borderSide: const BorderSide(color: Colors.black, width: 0.9),
-              borderRadius: BorderRadius.all(Radius.circular(15)),
-            ),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: const BorderSide(color: Colors.black)),
-            labelText: labelText,
-            labelStyle: TextStyle(color: Colors.black54)));
+                borderRadius: BorderRadius.all(Radius.circular(15)),
+              ),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Colors.black)),
+              labelText: labelText,
+              labelStyle: TextStyle(color: Colors.black54))),
+    );
   }
 
   void hitLoginApi() async {
@@ -204,26 +204,24 @@ class _LoginScreenState extends State<LoginScreen> {
             setState(() {
               isLoggingin = false;
             });
-            if (response.data["code"] == 200) {
-              SessionData.fromJson(response.data);
-              prefs.setString("SESSION_DATA", response.data.toString());
-              Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => HomePage()));
-            } else {
-              print(response.data["message"]);
-            }
+            SessionData.fromJson(response.data);
+            prefs.setString("SESSION_DATA", response.data.toString());
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => HomePage()));
           } else {
             setState(() {
               isLoggingin = false;
             });
-            print(response.data["message"]);
+            print(response.data[0]["message"]);
+            showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
           }
         });
       } on DioError catch (e) {
         setState(() {
           isLoggingin = false;
         });
-        print("this is error => " + e.message);
+        print("this is error => " + e.response.data[0]["message"]);
+        showInFlushBar(context, e.response.data[0]["message"], _scaffoldKey);
       }
     } else {
       setState(() {
