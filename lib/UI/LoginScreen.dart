@@ -7,6 +7,7 @@ import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
 import 'package:waterconnection/Helpers/SessionData.dart';
 import 'package:waterconnection/UI/HomePage.dart';
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -205,7 +206,8 @@ class _LoginScreenState extends State<LoginScreen> {
               isLoggingin = false;
             });
             SessionData.fromJson(response.data);
-            prefs.setString("SESSION_DATA", response.data.toString());
+            prefs.setBool("loggedin", true);
+            prefs.setString("SESSION_DATA", json.encode(response.data));
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (context) => HomePage()));
           } else {
@@ -220,6 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           isLoggingin = false;
         });
+        print(e.error);
         print("this is error => " + e.response.data[0]["message"]);
         showInFlushBar(context, e.response.data[0]["message"], _scaffoldKey);
       }

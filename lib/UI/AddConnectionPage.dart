@@ -8,6 +8,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
@@ -15,6 +16,7 @@ import 'package:waterconnection/Helpers/SessionData.dart';
 import 'package:waterconnection/Models/GetContractors.dart';
 import 'package:waterconnection/Models/GetSaddles.dart';
 import 'package:waterconnection/Models/GetZones.dart';
+import 'package:waterconnection/UI/LoginScreen.dart';
 
 class AddConnectionPage extends StatefulWidget {
   AddConnectionPage({Key key}) : super(key: key);
@@ -48,12 +50,16 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   String fileName;
   bool btnEnabled = true;
   bool _isLoading = false;
+  bool _isContractorLoading = false;
+  bool _isSaddleLoading = false;
+  bool _isZoneLoading = false;
   int getApiCount = 0;
   String latitude;
   String longitude;
   final ImagePicker _picker = ImagePicker();
   Position _currentPosition;
   AutovalidateMode formAutoValidate = AutovalidateMode.disabled;
+  SharedPreferences prefs;
 
   @override
   void initState() {
@@ -85,131 +91,180 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ModalProgressHUD(
-      inAsyncCall: _isLoading,
-      child: SafeArea(
-        child: Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: Colors.white,
-          appBar: AppBar(
-              title: Text("Add Connection"),
-              backgroundColor: Colors.green[900]),
-          body: Form(
-            key: _formKeyConnection,
-            autovalidateMode: formAutoValidate,
-            child: Container(
-              height: MediaQuery.of(context).size.height,
-              margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-              child: SingleChildScrollView(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                    // shrinkWrap: true,
-                    children: [
-                      buildDropdownButtonFormField(
-                          "Contractor", selectedCOntractor, tempContractors),
-                      buildTextFormField(
-                          "Consumer Name",
-                          null,
-                          consumerName,
-                          false,
-                          TextInputType.name,
-                          null,
-                          AutovalidateMode.onUserInteraction),
-                      buildDropdownButtonFormField(
-                          "Zone", selectedZone, tempZones),
-                      buildTextFormField(
-                          "Address",
-                          null,
-                          consumerAddress,
-                          true,
-                          TextInputType.streetAddress,
-                          null,
-                          AutovalidateMode.onUserInteraction),
-                      buildTextFormField(
-                          "Mobile No.",
-                          null,
-                          consumerMobile,
-                          false,
-                          TextInputType.number,
-                          10,
-                          AutovalidateMode.onUserInteraction),
-                      buildDropdownButtonFormField(
-                          "Saddle", selectedSaddle, tempSaddles),
-                      buildFerruleRadioButton("Ferrule"),
-                      buildRoadCrossingRadioButton("Road Crossing"),
-                      Container(
-                        alignment: Alignment.centerLeft,
-                        width: MediaQuery.of(context).size.width / 2.8,
-                        child: buildTextFormField(
-                            "MDPE Pipe Length",
-                            "mtrs",
-                            mdpePipeLenth,
-                            false,
-                            TextInputType.number,
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: ModalProgressHUD(
+        inAsyncCall: _isLoading,
+        child: SafeArea(
+          child: Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+                title: Text("Add Connection"),
+                actions: [
+                  IconButton(
+                      icon: Icon(Icons.logout),
+                      onPressed: () async {
+                        prefs = await SharedPreferences.getInstance();
+                        prefs.remove("loggedin");
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => LoginScreen()));
+                      })
+                ],
+                backgroundColor: Colors.green[900]),
+            body: Form(
+              key: _formKeyConnection,
+              child: Container(
+                height: MediaQuery.of(context).size.height,
+                margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
+                child: SingleChildScrollView(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      // shrinkWrap: true,
+                      children: [
+                        buildDropdownButtonFormField(
+                            "Contractor",
+                            selectedCOntractor,
+                            tempContractors,
+                            _isContractorLoading),
+                        buildTextFormField("Consumer Name", null, consumerName,
+                            false, TextInputType.name, null, formAutoValidate),
+                        // Container(
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       SizedBox(height: 15),
+                        //       Text(
+                        //         "Consumer Name" + " *",
+                        //         style: TextStyle(
+                        //             color: Colors.black38,
+                        //             fontWeight: FontWeight.w500),
+                        //       ),
+                        //       Container(
+                        //         // height: 40,
+                        //         child: TextFormField(
+                        //             minLines: false ? null : 1,
+                        //             maxLines: false ? null : 1,
+                        //             maxLength: null,
+                        //             validator: (text) {
+                        //               // if (controller == consumerMobile) {
+                        //               //   if (text.isEmpty || text.length < 10 || text.length > 10) {
+                        //               //     return "Mobile Number should be 10 digits";
+                        //               //   }
+                        //               // } else {
+                        //               if (text.isEmpty) {
+                        //                 return "Field should not be empty";
+                        //               }
+                        //               // }
+                        //               return null;
+                        //             },
+                        //             enableSuggestions: true,
+                        //             autocorrect: false,
+                        //             keyboardType: TextInputType.name,
+                        //             controller: consumerName,
+                        //             decoration: InputDecoration(
+                        //                 enabledBorder: UnderlineInputBorder(
+                        //                     borderSide: const BorderSide(
+                        //                         color: Colors.black26)),
+                        //                 labelStyle:
+                        //                     TextStyle(color: Colors.black54))),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
+                        buildDropdownButtonFormField(
+                            "Zone", selectedZone, tempZones, _isZoneLoading),
+                        buildTextFormField(
+                            "Address",
                             null,
-                            AutovalidateMode.onUserInteraction),
-                      ),
-                      SizedBox(
-                        height: 20,
-                      ),
-                      Container(
-                        // alignment: Alignment.center,
-                        width: fileName != null
-                            ? MediaQuery.of(context).size.width / 3
-                            : MediaQuery.of(context).size.width / 2,
-                        child: OutlineButton(
-                          child: fileName != null
-                              ? Image.file(
-                                  imagePath,
-                                  height: 150,
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.photo_camera),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      "Add Photo",
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                          color: Colors.black,
-                                          letterSpacing: 2),
-                                    ),
-                                  ],
-                                ),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          onPressed: () {
-                            getImageFromCamera(context);
-                          },
-                          // icon: fileName != null
-                          //     ? null
-                          //     : Icon(Icons.photo_camera)
+                            consumerAddress,
+                            true,
+                            TextInputType.streetAddress,
+                            null,
+                            formAutoValidate),
+                        buildTextFormField("Mobile No.", null, consumerMobile,
+                            false, TextInputType.number, 10, formAutoValidate),
+                        buildDropdownButtonFormField("Saddle", selectedSaddle,
+                            tempSaddles, _isSaddleLoading),
+                        buildFerruleRadioButton("Ferrule"),
+                        buildRoadCrossingRadioButton("Road Crossing"),
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          width: MediaQuery.of(context).size.width / 2.8,
+                          child: buildTextFormField(
+                              "MDPE Pipe Length",
+                              "mtrs",
+                              mdpePipeLenth,
+                              false,
+                              TextInputType.number,
+                              null,
+                              formAutoValidate),
                         ),
-                      ),
-                      SizedBox(height: 20),
-                      Container(
-                        width: MediaQuery.of(context).size.width / 1,
-                        child: RaisedButton(
-                          padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          onPressed: btnEnabled
-                              ? () {
-                                  isEmpty(context);
-                                }
-                              : null,
-                          color: btnEnabled ? Colors.black : Colors.black54,
-                          child: Text(
-                            "Save",
-                            style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.white,
-                                letterSpacing: 2),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Container(
+                          // alignment: Alignment.center,
+                          width: fileName != null
+                              ? MediaQuery.of(context).size.width / 3
+                              : MediaQuery.of(context).size.width / 2,
+                          child: OutlineButton(
+                            child: fileName != null
+                                ? Image.file(
+                                    imagePath,
+                                    height: 150,
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.photo_camera),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        "Add Photo",
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            color: Colors.black,
+                                            letterSpacing: 2),
+                                      ),
+                                    ],
+                                  ),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            onPressed: () {
+                              getImageFromCamera(context);
+                            },
+                            // icon: fileName != null
+                            //     ? null
+                            //     : Icon(Icons.photo_camera)
                           ),
                         ),
-                      ),
-                    ]),
+                        SizedBox(height: 20),
+                        Container(
+                          width: MediaQuery.of(context).size.width / 1,
+                          child: RaisedButton(
+                            padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            onPressed: btnEnabled
+                                ? () {
+                                    isEmpty(context);
+                                  }
+                                : null,
+                            color: btnEnabled ? Colors.black : Colors.black54,
+                            child: Text(
+                              "Save",
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  letterSpacing: 2),
+                            ),
+                          ),
+                        ),
+                      ]),
+                ),
               ),
             ),
           ),
@@ -357,7 +412,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   }
 
   Container buildDropdownButtonFormField(String fieldName, String valueHolder,
-      List<DropdownMenuItem<String>> data) {
+      List<DropdownMenuItem<String>> data, bool isLoading) {
     return Container(
       // height: 45,
       child: Column(
@@ -372,7 +427,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           new DropdownButtonFormField(
               // itemHeight: 25,
 
-              autovalidateMode: AutovalidateMode.onUserInteraction,
+              // autovalidateMode: formAutoValidate,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return "Please select a value";
@@ -385,7 +440,15 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
               //   height: 1,
               //   color: Colors.black26,
               // ),
-              icon: Icon(Icons.keyboard_arrow_down_outlined),
+              icon: isLoading
+                  ? Container(
+                      padding: EdgeInsets.all(2),
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                      ))
+                  : Icon(Icons.keyboard_arrow_down_outlined),
               decoration: InputDecoration(
                   //     labelText: "Contractor *",
                   //     enabledBorder: const OutlineInputBorder(
@@ -466,7 +529,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           Container(
             // height: 40,
             child: TextFormField(
-                autovalidateMode: autovalidateMode,
+                // autovalidateMode: autovalidateMode,
                 minLines: expands ? null : 1,
                 maxLines: expands ? null : 1,
                 maxLength: maxLength,
@@ -505,7 +568,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   void getContractorsApi() async {
     setState(() {
-      _isLoading = true;
+      _isContractorLoading = true;
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
@@ -519,7 +582,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       if (response.statusCode == 200) {
         getContractors = GetContractors.fromJson(response.data);
         setState(() {
-          _isLoading = false;
+          _isContractorLoading = false;
         });
         getContractors.data.forEach((e) {
           tempContractors.add(
@@ -529,7 +592,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         print(getContractors.data[0].name);
       } else {
         setState(() {
-          _isLoading = false;
+          _isContractorLoading = false;
         });
       }
       // var data = response.data as List;
@@ -538,7 +601,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   void getSaddlesApi() async {
     setState(() {
-      _isLoading = true;
+      _isSaddleLoading = true;
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
@@ -551,7 +614,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       if (response.statusCode == 200) {
         getSaddles = GetSaddles.fromJson(response.data);
         setState(() {
-          _isLoading = false;
+          _isSaddleLoading = false;
         });
         getSaddles.data.forEach((e) {
           tempSaddles.add(DropdownMenuItem(
@@ -561,7 +624,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         print(getSaddles.data[0].saddleName);
       } else {
         setState(() {
-          _isLoading = false;
+          _isSaddleLoading = false;
         });
       }
       // var data = response.data as List;
@@ -570,7 +633,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
   void getZonesApi() async {
     setState(() {
-      _isLoading = true;
+      _isZoneLoading = true;
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
@@ -583,7 +646,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       if (response.statusCode == 200) {
         getZones = GetZones.fromJson(response.data);
         setState(() {
-          _isLoading = false;
+          _isZoneLoading = false;
         });
         getZones.data.forEach((e) {
           tempZones.add(DropdownMenuItem(
@@ -593,7 +656,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         print(getZones.data[0].zoneName);
       } else {
         setState(() {
-          _isLoading = false;
+          _isZoneLoading = false;
         });
       }
       // var data = response.data as List;
@@ -616,9 +679,6 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     //     ..createSync(recursive: true)
     //     ..writeAsBytesSync(onValue);
     // });
-    setState(() {
-      formAutoValidate = AutovalidateMode.always;
-    });
     FormData formData = FormData.fromMap({
       "name": consumerName.text,
       "createdBy": SessionData().data.id,
@@ -637,6 +697,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     print(formData.fields);
 
     setState(() {
+      formAutoValidate = AutovalidateMode.disabled;
       _isLoading = true;
     });
 
@@ -651,26 +712,26 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           });
 
           setState(() {
-            // consumerName.clear();
-            // consumerAddress.clear();
-            // consumerMobile.clear();
-            // mdpePipeLenth.clear();
-            // selectedCOntractor = null;
-            // selectedSaddle = null;
-            // selectedZone = null;
+            consumerName.text = "";
+            consumerAddress.text = "";
+            consumerMobile.text = "";
+            mdpePipeLenth.text = "";
+            selectedCOntractor = null;
+            selectedSaddle = null;
+            selectedZone = null;
             ferruleValue = null;
             roadCrossingValue = null;
             imagePath = null;
             fileName = null;
           });
-          _formKeyConnection.currentState.reset();
           setState(() {
-            formAutoValidate = AutovalidateMode.disabled;
+            formAutoValidate = AutovalidateMode.onUserInteraction;
           });
           print(response.data["message"]);
           showInFlushBar(context, response.data["message"], _scaffoldKey);
         } else if (response.statusCode == 403) {
           setState(() {
+            formAutoValidate = AutovalidateMode.onUserInteraction;
             _isLoading = false;
           });
           print(response.data);
@@ -678,6 +739,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
           SessionData().settoken(response.data["new-token"]);
         } else {
           setState(() {
+            formAutoValidate = AutovalidateMode.onUserInteraction;
             _isLoading = false;
           });
           print(response.statusMessage);
@@ -685,6 +747,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       });
     } on DioError catch (e) {
       setState(() {
+        formAutoValidate = AutovalidateMode.disabled;
         _isLoading = false;
       });
       print("this is error => " + e.response.data[0]["message"]);

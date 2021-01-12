@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
+import 'package:waterconnection/UI/SplashScreen.dart';
 
 void main() {
   runApp(MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
         color: Colors.black,
         versionCode: 1);
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Water Meter Connection',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: LoginScreen(),
+      home: SplashScreen(),
     );
   }
 }
