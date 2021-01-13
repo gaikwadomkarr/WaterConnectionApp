@@ -735,8 +735,11 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             _isLoading = false;
           });
           print(response.data);
-          showInFlushBar(context, response.data["message"], _scaffoldKey);
-          SessionData().settoken(response.data["new-token"]);
+          showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
+          SessionData().settoken(response.data[0]["new-token"]);
+          print(SessionData().data.token);
+          showDialogOnError(context, "Session Timeout",
+              "Your session has expired", "Retry", isEmpty);
         } else {
           setState(() {
             formAutoValidate = AutovalidateMode.onUserInteraction;
