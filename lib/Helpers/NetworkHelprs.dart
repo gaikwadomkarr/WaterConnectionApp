@@ -23,8 +23,7 @@ Dio getDio(String requestType) {
   return dio;
 }
 
-void showInFlushBar(
-    BuildContext context, String value, GlobalKey<ScaffoldState> _key) {
+void showInFlushBar(context, String value, GlobalKey<ScaffoldState> _key) {
   FocusScope.of(context).requestFocus(new FocusNode());
   _key.currentState?.removeCurrentSnackBar();
 
@@ -45,6 +44,27 @@ void showInFlushBar(
 }
 
 void showDialogOnError(BuildContext context, String title, String message,
+    String btnText, Function function) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      // return object of type Dialog
+      return AlertDialog(
+        title: new Text(title),
+        content: new Text(message),
+        actions: <Widget>[
+          new FlatButton(
+            child: new Text(btnText),
+            onPressed: function,
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void showRetryDialog(BuildContext context, String title, String message,
     String btnText, Function function) {
   showDialog(
     context: context,

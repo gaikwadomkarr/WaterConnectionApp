@@ -53,6 +53,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   bool _isContractorLoading = false;
   bool _isSaddleLoading = false;
   bool _isZoneLoading = false;
+  bool _isErrorShown = false;
   int getApiCount = 0;
   String latitude;
   String longitude;
@@ -65,12 +66,36 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+    retryFunction();
+  }
+
+  void retryFunction() {
     getContractorsApi();
-    getSaddlesApi();
-    getZonesApi();
+  }
+
+  void showDialogOnError(BuildContext context, String title, String message,
+      String btnText, Function function) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text(btnText),
+              onPressed: function,
+            ),
+          ],
+        );
+      },
+    );
   }
 
   _getCurrentLocation() async {
+    prefs = await SharedPreferences.getInstance();
     Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
         .then((value) => {
               setState(() {
@@ -107,6 +132,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                       onPressed: () async {
                         prefs = await SharedPreferences.getInstance();
                         prefs.remove("loggedin");
+                        prefs.remove("token");
                         Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -250,7 +276,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                                 borderRadius: BorderRadius.circular(10)),
                             onPressed: btnEnabled
                                 ? () {
-                                    isEmpty(context);
+                                    isEmpty();
                                   }
                                 : null,
                             color: btnEnabled ? Colors.black : Colors.black54,
@@ -478,30 +504,31 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     );
   }
 
-  void isEmpty(BuildContext context) {
+  void isEmpty() {
     print("called empty");
     var flag = 0;
     if (_formKeyConnection.currentState.validate()) {
       print("aal fileds filled");
       if (ferruleValue == null) {
         flag = 1;
-        showInFlushBar(context, "Please select Ferrule value", _scaffoldKey);
+        showInFlushBar(
+            this.context, "Please select Ferrule value", _scaffoldKey);
         return;
       }
       if (roadCrossingValue == null) {
         flag = 1;
         showInFlushBar(
-            context, "Please select Road Crossing value", _scaffoldKey);
+            this.context, "Please select Road Crossing value", _scaffoldKey);
         return;
       }
       if (imagePath == null) {
         flag = 1;
-        showInFlushBar(context, "Please select image", _scaffoldKey);
+        showInFlushBar(this.context, "Please select image", _scaffoldKey);
         return;
       }
 
       if (flag == 0) {
-        submitDetails(context);
+        submitDetails();
       }
     } else {
       print("aal fileds not filled");
@@ -572,31 +599,63 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
-    String getContractorUrl =
-        FlavorConfig.instance.url() + "/Master/getContracters";
+    String getContractorUrl = FlavorConfig.instance.url() +
+        "/Master/getContracters?userId=${SessionData().data.id}";
     print(getContractorUrl);
-    await getDio("json").get(getContractorUrl).then((response) {
-      print("this is getcontractor api ${response.statusCode}");
-      print("this is getcontractor api ${response.data}");
+    try {
+      await getDio("json").get(getContractorUrl).then((response) {
+        print("this is getcontractor api ${response.statusCode}");
+        print("this is getcontractor api ${response.data}");
 
-      if (response.statusCode == 200) {
-        getContractors = GetContractors.fromJson(response.data);
+        if (response.statusCode == 200) {
+          getContractors = GetContractors.fromJson(response.data);
+          setState(() {
+            _isContractorLoading = false;
+          });
+          getContractors.data.forEach((e) {
+            tempContractors.add(
+                DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
+            setState(() {});
+          });
+          print(getContractors.data[0].name);
+          getSaddlesApi();
+          getZonesApi();
+        } else if (response.statusCode == 403) {
+          setState(() {
+            _isContractorLoading = false;
+          });
+          print(response.data);
+
+          print(SessionData().data.token);
+        } else {
+          setState(() {
+            _isContractorLoading = false;
+          });
+        }
+        // var data = response.data as List;
+      });
+    } on DioError catch (e) {
+      setState(() {
+        _isContractorLoading = false;
+      });
+      print(e.response.data[0]["message"]);
+      print(e.response.data[0]["new-token"]);
+      if (!_isErrorShown) {
+        print("entered contractor retry");
         setState(() {
-          _isContractorLoading = false;
+          _isErrorShown = true;
         });
-        getContractors.data.forEach((e) {
-          tempContractors.add(
-              DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
-          setState(() {});
-        });
-        print(getContractors.data[0].name);
-      } else {
-        setState(() {
-          _isContractorLoading = false;
+        SessionData().settoken(e.response.data[0]["new-token"]);
+        prefs.setString("token", e.response.data[0]["new-token"]);
+        showDialogOnError(this.context, "Session Timeout",
+            "Your session has expired. Please retry !", "Retry", () {
+          retryFunction();
+          Navigator.pop(this.context);
+          // Navigator.pushReplacement(this.context,
+          //     MaterialPageRoute(builder: (context) => LoginScreen()));
         });
       }
-      // var data = response.data as List;
-    });
+    }
   }
 
   void getSaddlesApi() async {
@@ -605,30 +664,72 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
-    String getSaddlesUrl = FlavorConfig.instance.url() + "/Master/getSaddles";
+    String getSaddlesUrl = FlavorConfig.instance.url() +
+        "/Master/getSaddles?userId=${SessionData().data.id}";
     print(getSaddlesUrl);
-    await getDio("json").get(getSaddlesUrl).then((response) {
-      print("this is getcontractor api ${response.statusCode}");
-      print("this is getcontractor api ${response.data}");
+    try {
+      await getDio("json").get(getSaddlesUrl).then((response) {
+        print("this is getcontractor api ${response.statusCode}");
+        print("this is getcontractor api ${response.data}");
 
-      if (response.statusCode == 200) {
-        getSaddles = GetSaddles.fromJson(response.data);
-        setState(() {
-          _isSaddleLoading = false;
-        });
-        getSaddles.data.forEach((e) {
-          tempSaddles.add(DropdownMenuItem(
-              value: e.id.toString(), child: Text(e.saddleName)));
-          setState(() {});
-        });
-        print(getSaddles.data[0].saddleName);
-      } else {
-        setState(() {
-          _isSaddleLoading = false;
+        if (response.statusCode == 200) {
+          getSaddles = GetSaddles.fromJson(response.data);
+          setState(() {
+            _isSaddleLoading = false;
+          });
+          getSaddles.data.forEach((e) {
+            tempSaddles.add(DropdownMenuItem(
+                value: e.id.toString(), child: Text(e.saddleName)));
+            setState(() {});
+          });
+          print(getSaddles.data[0].saddleName);
+        } else if (response.statusCode == 403) {
+          setState(() {
+            _isContractorLoading = false;
+          });
+          print(response.data);
+
+          print(SessionData().data.token);
+          if (!_isErrorShown) {
+            setState(() {
+              _isErrorShown = true;
+            });
+            print("entered contractor retry");
+            SessionData().settoken(response.data[0]["new-token"]);
+            showDialogOnError(this.context, "Session Timeout",
+                "Your session has expired. Please retry !", "Retry", () {
+              retryFunction();
+              Navigator.pop(this.context);
+
+              Navigator.pushReplacement(this.context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()));
+            });
+          }
+        } else {
+          setState(() {
+            _isSaddleLoading = false;
+          });
+        }
+        // var data = response.data as List;
+      });
+    } on DioError catch (e) {
+      setState(() {
+        _isSaddleLoading = false;
+      });
+      print(e.response.data[0]["message"]);
+      print(e.response.data[0]["new-token"]);
+      if (!_isErrorShown) {
+        SessionData().settoken(e.response.data[0]["new-token"]);
+        prefs.setString("token", e.response.data[0]["new-token"]);
+        showDialogOnError(this.context, "Session Timeout",
+            "Your session has expired. Please retry !", "Retry", () {
+          retryFunction();
+          Navigator.pop(this.context);
+          // Navigator.pushReplacement(this.context,
+          //     MaterialPageRoute(builder: (context) => LoginScreen()));
         });
       }
-      // var data = response.data as List;
-    });
+    }
   }
 
   void getZonesApi() async {
@@ -637,33 +738,73 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     });
     print("this is token from sessiondata => " +
         SessionData().data.token.toString());
-    String getZonesUrl = FlavorConfig.instance.url() + "/Master/getZones";
+    String getZonesUrl = FlavorConfig.instance.url() +
+        "/Master/getZones?userId=${SessionData().data.id}";
     print(getZonesUrl);
-    await getDio("json").get(getZonesUrl).then((response) {
-      print("this is getcontractor api ${response.statusCode}");
-      print("this is getcontractor api ${response.data}");
+    try {
+      await getDio("json").get(getZonesUrl).then((response) {
+        print("this is getcontractor api ${response.statusCode}");
+        print("this is getcontractor api ${response.data}");
 
-      if (response.statusCode == 200) {
-        getZones = GetZones.fromJson(response.data);
-        setState(() {
-          _isZoneLoading = false;
-        });
-        getZones.data.forEach((e) {
-          tempZones.add(DropdownMenuItem(
-              value: e.id.toString(), child: Text(e.zoneName)));
-          setState(() {});
-        });
-        print(getZones.data[0].zoneName);
-      } else {
-        setState(() {
-          _isZoneLoading = false;
+        if (response.statusCode == 200) {
+          getZones = GetZones.fromJson(response.data);
+          setState(() {
+            _isZoneLoading = false;
+          });
+          getZones.data.forEach((e) {
+            tempZones.add(DropdownMenuItem(
+                value: e.id.toString(), child: Text(e.zoneName)));
+            setState(() {});
+          });
+          print(getZones.data[0].zoneName);
+        } else if (response.statusCode == 403) {
+          setState(() {
+            _isContractorLoading = false;
+          });
+          print(response.data);
+
+          print(SessionData().data.token);
+          if (!_isErrorShown) {
+            setState(() {
+              _isErrorShown = true;
+            });
+            SessionData().settoken(response.data[0]["new-token"]);
+            showDialogOnError(this.context, "Session Timeout",
+                "Your session has expired. Please retry !", "Retry", () {
+              retryFunction();
+              Navigator.pop(this.context);
+
+              Navigator.pushReplacement(this.context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()));
+            });
+          }
+        } else {
+          setState(() {
+            _isZoneLoading = false;
+          });
+        }
+        // var data = response.data as List;
+      });
+    } on DioError catch (e) {
+      setState(() {
+        _isZoneLoading = false;
+      });
+      print(e.response.data[0]["message"]);
+      print(e.response.data[0]["new-token"]);
+      if (!_isErrorShown) {
+        print("entered contractor retry");
+        SessionData().settoken(e.response.data[0]["new-token"]);
+        prefs.setString("token", e.response.data[0]["new-token"]);
+        showDialogOnError(this.context, "Session Timeout",
+            "Your session has expired", "Retry", () {
+          retryFunction();
+          Navigator.pop(this.context);
         });
       }
-      // var data = response.data as List;
-    });
+    }
   }
 
-  void submitDetails(BuildContext context) async {
+  void submitDetails() async {
     String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
 
     // Excel excel = Excel.createExcel();
@@ -706,40 +847,44 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       await getDio("formdata").post(url, data: formData).then((response) {
         print(response.statusCode);
         print(response.data);
+        print("inside code => " + response.data["code"].toString());
+        print("inside mesg => " + response.data["message"]);
         if (response.statusCode == 200) {
           setState(() {
             _isLoading = false;
           });
-
-          setState(() {
-            consumerName.text = "";
-            consumerAddress.text = "";
-            consumerMobile.text = "";
-            mdpePipeLenth.text = "";
-            selectedCOntractor = null;
-            selectedSaddle = null;
-            selectedZone = null;
-            ferruleValue = null;
-            roadCrossingValue = null;
-            imagePath = null;
-            fileName = null;
-          });
-          setState(() {
-            formAutoValidate = AutovalidateMode.onUserInteraction;
-          });
-          print(response.data["message"]);
-          showInFlushBar(context, response.data["message"], _scaffoldKey);
-        } else if (response.statusCode == 403) {
-          setState(() {
-            formAutoValidate = AutovalidateMode.onUserInteraction;
-            _isLoading = false;
-          });
-          print(response.data);
-          showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
-          SessionData().settoken(response.data[0]["new-token"]);
-          print(SessionData().data.token);
-          showDialogOnError(context, "Session Timeout",
-              "Your session has expired", "Retry", isEmpty);
+          if (response.data["code"] == 200) {
+            setState(() {
+              consumerName.text = "";
+              consumerAddress.text = "";
+              consumerMobile.text = "";
+              mdpePipeLenth.text = "";
+              selectedCOntractor = null;
+              selectedSaddle = null;
+              selectedZone = null;
+              ferruleValue = null;
+              roadCrossingValue = null;
+              imagePath = null;
+              fileName = null;
+            });
+            setState(() {
+              formAutoValidate = AutovalidateMode.onUserInteraction;
+            });
+            print(response.data["message"]);
+            showInFlushBar(
+                this.context, response.data["message"], _scaffoldKey);
+          } else if (response.statusCode == 403) {
+            setState(() {
+              formAutoValidate = AutovalidateMode.onUserInteraction;
+              _isLoading = false;
+            });
+            print(response.data);
+            showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
+            SessionData().settoken(response.data[0]["new-token"]);
+            print(SessionData().data.token);
+            showDialogOnError(this.context, "Session Timeout",
+                "Your session has expired", "Retry", isEmpty);
+          }
         } else {
           setState(() {
             formAutoValidate = AutovalidateMode.onUserInteraction;
@@ -753,8 +898,26 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
         formAutoValidate = AutovalidateMode.disabled;
         _isLoading = false;
       });
-      print("this is error => " + e.response.data[0]["message"]);
-      showInFlushBar(context, e.response.data[0]["message"], _scaffoldKey);
+      print(
+          "this is status code submit => " + e.response.statusCode.toString());
+      print("this is status code submit => " + e.response.statusMessage);
+      print("this is data error => " + e.response.data.toString());
+      if (e.response.statusCode == 403) {
+        print("this is error => " + e.response.data[0]["message"]);
+        SessionData().settoken(e.response.data[0]["new-token"]);
+        prefs.setString("token", e.response.data[0]["new-token"]);
+        showDialogOnError(this.context, "Session Timeout",
+            "Your session has expired, please retry !", "Retry", () {
+          Navigator.pop(this.context);
+          submitDetails();
+
+          // Navigator.pushReplacement(this.context,
+          //     MaterialPageRoute(builder: (context) => LoginScreen()));
+        });
+      } else {
+        showInFlushBar(
+            this.context, e.response.data[0]["message"], _scaffoldKey);
+      }
     }
   }
 }

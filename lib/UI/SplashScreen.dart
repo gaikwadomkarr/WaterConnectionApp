@@ -25,6 +25,9 @@ class _SplashScreenState extends State<SplashScreen> {
     loggedin = prefs.getBool("loggedin") ?? false;
     if (loggedin) {
       SessionData.fromJson(json.decode(prefs.getString("SESSION_DATA")));
+      if (prefs.getString("token") != null) {
+        SessionData().settoken(prefs.getString("token"));
+      }
       Future.delayed(Duration(seconds: 1), () {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => HomePage()));
