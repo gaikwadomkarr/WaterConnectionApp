@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:waterconnection/UI/AddConnectionPage.dart';
+import 'package:waterconnection/UI/AllEntriesPage.dart';
 import 'package:waterconnection/UI/AllEntriesScreen.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
 
@@ -11,7 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Widget> screens = [AddConnectionPage(), AllEntriesScreen()];
+  List<Widget> screens = [AddConnectionPage(), AllEntriesPage()];
   int _selectedIndex = 0;
 
   void comfirmExitFromUser() {

@@ -43,7 +43,7 @@ void showInFlushBar(context, String value, GlobalKey<ScaffoldState> _key) {
   )..show(context);
 }
 
-void showDialogOnError(BuildContext context, String title, String message,
+void showRetryDialog(BuildContext context, String title, String message,
     String btnText, Function function) {
   showDialog(
     context: context,
@@ -64,23 +64,10 @@ void showDialogOnError(BuildContext context, String title, String message,
   );
 }
 
-void showRetryDialog(BuildContext context, String title, String message,
-    String btnText, Function function) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      // return object of type Dialog
-      return AlertDialog(
-        title: new Text(title),
-        content: new Text(message),
-        actions: <Widget>[
-          new FlatButton(
-            child: new Text(btnText),
-            onPressed: function,
-          ),
-        ],
-      );
-    },
-  );
+TextStyle greenStyle() {
+  return TextStyle(color: Colors.green[900], fontWeight: FontWeight.normal);
+}
+
+TextStyle blackStyle() {
+  return TextStyle(color: Colors.black, fontWeight: FontWeight.normal);
 }

@@ -52,6 +52,7 @@ class Data {
     this.name,
     this.address,
     this.isActive,
+    this.branchId,
     this.token,
   });
 
@@ -60,6 +61,7 @@ class Data {
   String name;
   String address;
   String isActive;
+  int branchId;
   String token;
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
@@ -68,6 +70,7 @@ class Data {
         name: json["name"] == null ? null : json["name"],
         address: json["address"] == null ? null : json["address"],
         isActive: json["is_active"] == null ? null : json["is_active"],
+        branchId: json["branchId"] == null ? null : json["branchId"],
         token: json["token"] == null ? null : json["token"],
       );
 
@@ -77,6 +80,7 @@ class Data {
         "name": name == null ? null : name,
         "address": address == null ? null : address,
         "is_active": isActive == null ? null : isActive,
+        "branchId": branchId == null ? null : branchId,
         "token": token == null ? null : token,
       };
 }

@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flushbar/flushbar_route.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:path/path.dart';
-import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -54,6 +52,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   bool _isSaddleLoading = false;
   bool _isZoneLoading = false;
   bool _isErrorShown = false;
+  bool _isOfflineSave = false;
   int getApiCount = 0;
   String latitude;
   String longitude;
@@ -105,7 +104,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   }
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
-    var image1 = await _picker.getImage(source: ImageSource.camera);
+    var image1 =
+        await _picker.getImage(source: ImageSource.camera, imageQuality: 1);
     setState(() {
       imagePath = File(image1.path);
       fileName = imagePath.path.split('/').last;
@@ -268,26 +268,55 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                           ),
                         ),
                         SizedBox(height: 20),
-                        Container(
-                          width: MediaQuery.of(context).size.width / 1,
-                          child: RaisedButton(
-                            padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            onPressed: btnEnabled
-                                ? () {
-                                    isEmpty();
-                                  }
-                                : null,
-                            color: btnEnabled ? Colors.black : Colors.black54,
-                            child: Text(
-                              "Save",
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.white,
-                                  letterSpacing: 2),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Container(
+                              // width: MediaQuery.of(context).size.width / 1,
+                              child: RaisedButton(
+                                padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                onPressed: btnEnabled
+                                    ? () {
+                                        isEmpty();
+                                      }
+                                    : null,
+                                color:
+                                    btnEnabled ? Colors.black : Colors.black54,
+                                child: Text(
+                                  "Save",
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.white,
+                                      letterSpacing: 2),
+                                ),
+                              ),
                             ),
-                          ),
+                            Container(
+                              // width: MediaQuery.of(context).size.width / 1,
+                              child: RaisedButton(
+                                padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                onPressed: btnEnabled
+                                    ? () {
+                                        offlineSave();
+                                      }
+                                    : null,
+                                color:
+                                    btnEnabled ? Colors.black : Colors.black54,
+                                child: Text(
+                                  "Offline Save",
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.white,
+                                      letterSpacing: 2),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ]),
                 ),
@@ -832,6 +861,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       "pipeSize": mdpePipeLenth.text,
       "lat": _currentPosition.latitude.toString(),
       "lang": _currentPosition.longitude.toString(),
+      "branchId": SessionData().data.branchId,
       "media": await MultipartFile.fromFile(imagePath.path, filename: fileName)
     });
 
@@ -854,6 +884,48 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             _isLoading = false;
           });
           if (response.data["code"] == 200) {
+            final List<String> consumerNamesList =
+                prefs.getStringList("consumerNamesList") ?? [];
+            final List<String> contractorList =
+                prefs.getStringList("contractorList") ?? [];
+            final List<String> consumerPhotosList =
+                prefs.getStringList("consumerPhotosList") ?? [];
+            final List<String> zonesList =
+                prefs.getStringList("zonesList") ?? [];
+            final List<String> addressList =
+                prefs.getStringList("addressList") ?? [];
+            final List<String> mobileNumbersList =
+                prefs.getStringList("addressList") ?? [];
+            final List<String> saddlesList =
+                prefs.getStringList("saddlesList") ?? [];
+            final List<String> ferruleList =
+                prefs.getStringList("ferruleList") ?? [];
+            final List<String> roadCrossingList =
+                prefs.getStringList("roadCrossingList") ?? [];
+            final List<String> mdpePipeList =
+                prefs.getStringList("mdpePipeList") ?? [];
+
+            consumerNamesList.add(consumerName.text);
+            contractorList.add(selectedCOntractor);
+            consumerPhotosList.add(imagePath.path);
+            zonesList.add(selectedZone);
+            addressList.add(consumerAddress.text);
+            mobileNumbersList.add(consumerMobile.text);
+            saddlesList.add(selectedSaddle);
+            roadCrossingList.add(roadCrossingValue ? "1" : "0");
+            ferruleList.add(ferruleValue ? "1" : "0");
+            mdpePipeList.add(mdpePipeLenth.text);
+
+            prefs.setStringList("consumerNamesList", consumerNamesList);
+            prefs.setStringList("contractorList", contractorList);
+            prefs.setStringList("consumerPhotosList", consumerPhotosList);
+            prefs.setStringList("zonesList", zonesList);
+            prefs.setStringList("addressList", addressList);
+            prefs.setStringList("saddlesList", saddlesList);
+            prefs.setStringList("ferruleList", ferruleList);
+            prefs.setStringList("roadCrossingList", roadCrossingList);
+            prefs.setStringList("mdpePipeList", mdpePipeList);
+
             setState(() {
               consumerName.text = "";
               consumerAddress.text = "";
@@ -871,8 +943,11 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
               formAutoValidate = AutovalidateMode.onUserInteraction;
             });
             print(response.data["message"]);
-            showInFlushBar(
-                this.context, response.data["message"], _scaffoldKey);
+
+            showDialogOnError(
+                this.context, "Successful", response.data["message"], "Ok", () {
+              Navigator.pop(this.context);
+            });
           } else if (response.statusCode == 403) {
             setState(() {
               formAutoValidate = AutovalidateMode.onUserInteraction;
@@ -919,5 +994,58 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             this.context, e.response.data[0]["message"], _scaffoldKey);
       }
     }
+  }
+
+  void offlineSave() {
+    final List<String> consumerNamesList =
+        prefs.getStringList("consumerNamesList") ?? [];
+    final List<String> contractorList =
+        prefs.getStringList("contractorList") ?? [];
+    final List<String> consumerPhotosList =
+        prefs.getStringList("consumerPhotosList") ?? [];
+    final List<String> zonesList = prefs.getStringList("zonesList") ?? [];
+    final List<String> addressList = prefs.getStringList("addressList") ?? [];
+    final List<String> mobileNumbersList =
+        prefs.getStringList("addressList") ?? [];
+    final List<String> saddlesList = prefs.getStringList("saddlesList") ?? [];
+    final List<String> ferruleList = prefs.getStringList("ferruleList") ?? [];
+    final List<String> roadCrossingList =
+        prefs.getStringList("roadCrossingList") ?? [];
+    final List<String> mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
+
+    consumerNamesList.add(consumerName.text);
+    contractorList.add(selectedCOntractor);
+    consumerPhotosList.add(imagePath.path);
+    zonesList.add(selectedZone);
+    addressList.add(consumerAddress.text);
+    mobileNumbersList.add(consumerMobile.text);
+    saddlesList.add(selectedSaddle);
+    roadCrossingList.add(roadCrossingValue ? "1" : "0");
+    ferruleList.add(ferruleValue ? "1" : "0");
+    mdpePipeList.add(mdpePipeLenth.text);
+
+    prefs.setStringList("consumerNamesList", consumerNamesList);
+    prefs.setStringList("contractorList", contractorList);
+    prefs.setStringList("consumerPhotosList", consumerPhotosList);
+    prefs.setStringList("zonesList", zonesList);
+    prefs.setStringList("addressList", addressList);
+    prefs.setStringList("saddlesList", saddlesList);
+    prefs.setStringList("ferruleList", ferruleList);
+    prefs.setStringList("roadCrossingList", roadCrossingList);
+    prefs.setStringList("mdpePipeList", mdpePipeList);
+
+    setState(() {
+      consumerName.text = "";
+      consumerAddress.text = "";
+      consumerMobile.text = "";
+      mdpePipeLenth.text = "";
+      selectedCOntractor = null;
+      selectedSaddle = null;
+      selectedZone = null;
+      ferruleValue = null;
+      roadCrossingValue = null;
+      imagePath = null;
+      fileName = null;
+    });
   }
 }
