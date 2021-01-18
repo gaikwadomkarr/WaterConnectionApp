@@ -23,6 +23,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   List<String> ferruleList = List<String>();
   List<String> roadCrossingList = List<String>();
   List<String> mdpePipeList = List<String>();
+  List<String> uploadStatusList = List<String>();
 
   @override
   void initState() {
@@ -37,11 +38,13 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     contractorNames = prefs.getStringList("contractorList") ?? [];
     zonesList = prefs.getStringList("zonesList") ?? [];
     addressList = prefs.getStringList("addressList") ?? [];
-    mobileNumbersList = prefs.getStringList("addressList") ?? [];
+    mobileNumbersList = prefs.getStringList("consumermobileList") ?? [];
     saddlesList = prefs.getStringList("saddlesList") ?? [];
     ferruleList = prefs.getStringList("ferruleList") ?? [];
     roadCrossingList = prefs.getStringList("roadCrossingList") ?? [];
     mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
+    connectionCount = consumerNames.length ?? 0;
+    uploadStatusList = prefs.getStringList("uploadStatusList") ?? [];
     setState(() {});
   }
 
@@ -83,23 +86,26 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                           //                   File(consumerPhotos[index])),
                           //               child: null)));
                           return Container(
-                            margin: EdgeInsets.fromLTRB(20, 10, 20, 10),
+                            margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
                             child: Card(
-                              elevation: 2,
+                              elevation: 3,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
                               child: ExpansionTile(
+                                backgroundColor: uploadStatusList[index] == "No"
+                                    ? Colors.lightGreen
+                                    : Colors.white,
                                 title: Text(
-                                  "Consumer Name : " + consumerNames[index],
-                                  style: greenStyle().copyWith(fontSize: 13),
+                                  consumerNames[index],
+                                  style: greenStyle().copyWith(fontSize: 15),
                                 ),
-                                subtitle: Text(contractorNames[index],
-                                    style: greenStyle()),
+                                subtitle: Text(mobileNumbersList[index] ?? "--",
+                                    style: greenStyle().copyWith(fontSize: 13)),
                                 leading: Card(
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(25)),
-                                    elevation: 3,
+                                    elevation: 10,
                                     child: CircleAvatar(
                                         radius: 25,
                                         backgroundColor: Colors.white,
@@ -122,9 +128,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                           ? "Yes"
                                           : "No"),
                                   internalDetails("Mdpe Pipe",
-                                      mdpePipeList[index] + " mtrs"),
-                                  internalDetails(
-                                      "Contractor", contractorNames[index])
+                                      mdpePipeList[index] + " mtrs")
                                 ],
                               ),
                             ),

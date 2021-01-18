@@ -904,17 +904,35 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                 prefs.getStringList("roadCrossingList") ?? [];
             final List<String> mdpePipeList =
                 prefs.getStringList("mdpePipeList") ?? [];
+            final List<String> uploadStatusList =
+                prefs.getStringList("uploadStatusList") ?? [];
 
             consumerNamesList.add(consumerName.text);
-            contractorList.add(selectedCOntractor);
+            getContractors.data.forEach((element) {
+              if (element.id == int.parse(selectedCOntractor)) {
+                contractorList.add(selectedCOntractor);
+                return;
+              }
+            });
+            getZones.data.forEach((element) {
+              if (element.id == int.parse(selectedZone)) {
+                zonesList.add(selectedZone);
+                return;
+              }
+            });
+            getSaddles.data.forEach((element) {
+              if (element.id == int.parse(selectedSaddle)) {
+                saddlesList.add(selectedSaddle);
+                return;
+              }
+            });
             consumerPhotosList.add(imagePath.path);
-            zonesList.add(selectedZone);
             addressList.add(consumerAddress.text);
             mobileNumbersList.add(consumerMobile.text);
-            saddlesList.add(selectedSaddle);
             roadCrossingList.add(roadCrossingValue ? "1" : "0");
             ferruleList.add(ferruleValue ? "1" : "0");
             mdpePipeList.add(mdpePipeLenth.text);
+            uploadStatusList.add("No");
 
             prefs.setStringList("consumerNamesList", consumerNamesList);
             prefs.setStringList("contractorList", contractorList);
@@ -925,6 +943,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             prefs.setStringList("ferruleList", ferruleList);
             prefs.setStringList("roadCrossingList", roadCrossingList);
             prefs.setStringList("mdpePipeList", mdpePipeList);
+            prefs.setStringList("uploadStatusList", uploadStatusList);
 
             setState(() {
               consumerName.text = "";
@@ -1012,40 +1031,60 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     final List<String> roadCrossingList =
         prefs.getStringList("roadCrossingList") ?? [];
     final List<String> mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
+    final List<String> uploadStatusList =
+        prefs.getStringList("uploadStatusList") ?? [];
 
     consumerNamesList.add(consumerName.text);
-    contractorList.add(selectedCOntractor);
+    getContractors.data.forEach((element) {
+      if (element.id == int.parse(selectedCOntractor)) {
+        contractorList.add(element.name);
+        return;
+      }
+    });
+    getZones.data.forEach((element) {
+      if (element.id == int.parse(selectedZone)) {
+        zonesList.add(element.zoneName);
+        return;
+      }
+    });
+    getSaddles.data.forEach((element) {
+      if (element.id == int.parse(selectedSaddle)) {
+        saddlesList.add(element.saddleName);
+        return;
+      }
+    });
     consumerPhotosList.add(imagePath.path);
-    zonesList.add(selectedZone);
     addressList.add(consumerAddress.text);
     mobileNumbersList.add(consumerMobile.text);
-    saddlesList.add(selectedSaddle);
     roadCrossingList.add(roadCrossingValue ? "1" : "0");
     ferruleList.add(ferruleValue ? "1" : "0");
     mdpePipeList.add(mdpePipeLenth.text);
+    uploadStatusList.add("No");
 
     prefs.setStringList("consumerNamesList", consumerNamesList);
     prefs.setStringList("contractorList", contractorList);
     prefs.setStringList("consumerPhotosList", consumerPhotosList);
+    prefs.setStringList("consumermobileList", mobileNumbersList);
     prefs.setStringList("zonesList", zonesList);
     prefs.setStringList("addressList", addressList);
     prefs.setStringList("saddlesList", saddlesList);
     prefs.setStringList("ferruleList", ferruleList);
     prefs.setStringList("roadCrossingList", roadCrossingList);
     prefs.setStringList("mdpePipeList", mdpePipeList);
+    prefs.setStringList("uploadStatusList", uploadStatusList);
 
-    setState(() {
-      consumerName.text = "";
-      consumerAddress.text = "";
-      consumerMobile.text = "";
-      mdpePipeLenth.text = "";
-      selectedCOntractor = null;
-      selectedSaddle = null;
-      selectedZone = null;
-      ferruleValue = null;
-      roadCrossingValue = null;
-      imagePath = null;
-      fileName = null;
-    });
+    // setState(() {
+    //   consumerName.text = "";
+    //   consumerAddress.text = "";
+    //   consumerMobile.text = "";
+    //   mdpePipeLenth.text = "";
+    //   selectedCOntractor = null;
+    //   selectedSaddle = null;
+    //   selectedZone = null;
+    //   ferruleValue = null;
+    //   roadCrossingValue = null;
+    //   imagePath = null;
+    //   fileName = null;
+    // });
   }
 }
