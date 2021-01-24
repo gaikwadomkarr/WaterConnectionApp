@@ -13,6 +13,7 @@ import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
 import 'package:waterconnection/Helpers/SessionData.dart';
+import 'package:waterconnection/Helpers/WaterConnectionDBHelper.dart';
 import 'package:waterconnection/Models/GetContractors.dart';
 import 'package:waterconnection/Models/GetSaddles.dart';
 import 'package:waterconnection/Models/GetZones.dart';
@@ -30,6 +31,7 @@ enum RoadCrossingCharacter { yes, no }
 
 class _AddConnectionPageState extends State<AddConnectionPage>
     with AutomaticKeepAliveClientMixin {
+  final dbRef = WaterConnectionDBHelper();
   String selectedCOntractor;
   String selectedZone;
   String selectedSaddle;
