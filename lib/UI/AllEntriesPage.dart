@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
+import 'package:waterconnection/Helpers/SessionData.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
 
 class AllEntriesPage extends StatefulWidget {
@@ -13,6 +16,7 @@ class AllEntriesPage extends StatefulWidget {
 class _AllEntriesPageState extends State<AllEntriesPage> {
   SharedPreferences prefs;
   int connectionCount = 0;
+  bool _isLoading = false;
   List<String> consumerNames = List<String>();
   List<String> consumerPhotos = List<String>();
   List<String> contractorNames = List<String>();
@@ -24,6 +28,10 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   List<String> roadCrossingList = List<String>();
   List<String> mdpePipeList = List<String>();
   List<String> uploadStatusList = List<String>();
+  List<String> connectionDates = List<String>();
+  List<String> consumerlat = List<String>();
+  List<String> consumerlang = List<String>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -45,6 +53,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
     connectionCount = consumerNames.length ?? 0;
     uploadStatusList = prefs.getStringList("uploadStatusList") ?? [];
+    connectionDates = prefs.getStringList("connectionDates") ?? [];
+    consumerlat = prefs.getStringList("consumerlat") ?? [];
+    consumerlang = prefs.getStringList("consumerlang") ?? [];
     setState(() {});
   }
 
@@ -85,52 +96,82 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                           //               backgroundImage: FileImage(
                           //                   File(consumerPhotos[index])),
                           //               child: null)));
-                          return Container(
+                          return Card(
                             margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
-                            child: Card(
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: ExpansionTile(
-                                backgroundColor: uploadStatusList[index] == "No"
-                                    ? Colors.lightGreen
-                                    : Colors.white,
-                                title: Text(
-                                  consumerNames[index],
-                                  style: greenStyle().copyWith(fontSize: 15),
-                                ),
-                                subtitle: Text(mobileNumbersList[index] ?? "--",
-                                    style: greenStyle().copyWith(fontSize: 13)),
-                                leading: Card(
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(25)),
-                                    elevation: 10,
-                                    child: CircleAvatar(
-                                        radius: 25,
-                                        backgroundColor: Colors.white,
-                                        backgroundImage: FileImage(
-                                            File(consumerPhotos[index])),
-                                        child: null)),
+                            color: uploadStatusList[index] == "No"
+                                ? Colors.green[100]
+                                : Colors.white,
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            child: ExpansionTile(
+                              tilePadding: EdgeInsets.symmetric(horizontal: 5),
+                              // backgroundColor: uploadStatusList[index] == "No"
+                              //     ? Colors.lightGreen
+                              //     : Colors.white,
+                              title: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  internalDetails(
-                                      "Contractor", contractorNames[index]),
-                                  internalDetails("Zone", zonesList[index]),
-                                  internalDetails("Saddle", saddlesList[index]),
-                                  internalDetails(
-                                      "Ferrule",
-                                      (ferruleList[index] == "1")
-                                          ? "Yes"
-                                          : "No"),
-                                  internalDetails(
-                                      "Road Crossing",
-                                      (roadCrossingList[index] == "1")
-                                          ? "Yes"
-                                          : "No"),
-                                  internalDetails("Mdpe Pipe",
-                                      mdpePipeList[index] + " mtrs")
+                                  Text(
+                                    consumerNames[index],
+                                    style: greenStyle().copyWith(fontSize: 15),
+                                  ),
                                 ],
                               ),
+                              subtitle: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(mobileNumbersList[index] ?? "--",
+                                      style:
+                                          greenStyle().copyWith(fontSize: 13)),
+                                  Text(
+                                    connectionDates[index],
+                                    style: blackStyle().copyWith(
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                ],
+                              ),
+                              leading: Card(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25)),
+                                  elevation: 10,
+                                  child: CircleAvatar(
+                                      radius: 25,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: FileImage(
+                                          File(consumerPhotos[index])),
+                                      child: null)),
+                              trailing: uploadStatusList[index] == "No"
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                          IconButton(
+                                            icon: Icon(Icons.upload_sharp),
+                                            onPressed: () {
+                                              print("i clicked upload button");
+                                            },
+                                          )
+                                        ])
+                                  : null,
+                              children: [
+                                internalDetails("Contractor",
+                                    contractorNames[index].split(",").first),
+                                internalDetails(
+                                    "Zone", zonesList[index].split(",").first),
+                                internalDetails("Saddle",
+                                    saddlesList[index].split(",").first),
+                                internalDetails("Ferrule",
+                                    (ferruleList[index] == "1") ? "Yes" : "No"),
+                                internalDetails(
+                                    "Road Crossing",
+                                    (roadCrossingList[index] == "1")
+                                        ? "Yes"
+                                        : "No"),
+                                internalDetails(
+                                    "Mdpe Pipe", mdpePipeList[index] + " mtrs")
+                              ],
                             ),
                           );
                         },
@@ -162,5 +203,119 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
         ],
       ),
     );
+  }
+
+  void showDialogOnError(BuildContext context, String title, String message,
+      String btnText, Function function) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text(btnText),
+              onPressed: function,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void submitDetails(int index) async {
+    String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
+
+    // Excel excel = Excel.createExcel();
+    // Sheet sheetObject = excel["Excel 1"];
+    // var cell = sheetObject.cell(CellIndex.indexByString("A1"));
+    // cell.value = "Omkar Gaikwad";
+    // print("CellType: " + cell.cellType.toString());
+    // final filePath = await _localPath;
+    // String outputFile = filePath + "/r.xlsx";
+    // print(outputFile.toString());
+    // excel.encode().then((onValue) {
+    //   File(join(outputFile))
+    //     ..createSync(recursive: true)
+    //     ..writeAsBytesSync(onValue);
+    // });
+    FormData formData = FormData.fromMap({
+      "name": consumerNames[index],
+      "createdBy": SessionData().data.id,
+      "address": addressList[index],
+      "contractorId": int.parse(contractorNames[index].split(",").last),
+      "zoneId": int.parse(zonesList[index].split(",").last),
+      "saddleId": int.parse(saddlesList[index].split(",").last),
+      "isFerrule": ferruleList[index] == "Yes" ? 1 : 0,
+      "isRoadCrossing": roadCrossingList[index] == "Yes" ? 1 : 0,
+      "pipeSize": mdpePipeList[index],
+      "lat": consumerlat[index],
+      "lang": consumerlang[index],
+      "branchId": SessionData().data.branchId,
+      "media": await MultipartFile.fromFile(consumerPhotos[index],
+          filename: File(consumerPhotos[index]).path.split("/").last)
+    });
+
+    print(formData.fields);
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    print("this is add conection api => $url");
+    try {
+      await getDio("formdata").post(url, data: formData).then((response) {
+        print(response.statusCode);
+        print(response.data);
+        print("inside code => " + response.data["code"].toString());
+        print("inside mesg => " + response.data["message"]);
+        if (response.statusCode == 200) {
+          setState(() {
+            _isLoading = false;
+          });
+          if (response.data["code"] == 200) {
+            print(response.data["message"]);
+
+            showDialogOnError(
+                this.context, "Successful", response.data["message"], "Ok", () {
+              Navigator.pop(this.context);
+            });
+          } else if (response.statusCode == 403) {
+            print(response.data);
+            showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
+            SessionData().settoken(response.data[0]["new-token"]);
+            print(SessionData().data.token);
+            // showDialogOnError(this.context, "Session Timeout",
+            //     "Your session has expired", "Retry", isEmpty);
+          }
+        } else {
+          print(response.statusMessage);
+        }
+      });
+    } on DioError catch (e) {
+      print(
+          "this is status code submit => " + e.response.statusCode.toString());
+      print("this is status code submit => " + e.response.statusMessage);
+      print("this is data error => " + e.response.data.toString());
+      if (e.response.statusCode == 403) {
+        print("this is error => " + e.response.data[0]["message"]);
+        SessionData().settoken(e.response.data[0]["new-token"]);
+        prefs.setString("token", e.response.data[0]["new-token"]);
+        showDialogOnError(this.context, "Session Timeout",
+            "Your session has expired, please retry !", "Retry", () {
+          Navigator.pop(this.context);
+          submitDetails(index);
+
+          // Navigator.pushReplacement(this.context,
+          //     MaterialPageRoute(builder: (context) => LoginScreen()));
+        });
+      } else {
+        showInFlushBar(
+            this.context, e.response.data[0]["message"], _scaffoldKey);
+      }
+    }
   }
 }

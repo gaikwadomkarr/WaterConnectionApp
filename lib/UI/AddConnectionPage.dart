@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
@@ -26,7 +28,8 @@ class AddConnectionPage extends StatefulWidget {
 enum FerruleCharacter { yes, no }
 enum RoadCrossingCharacter { yes, no }
 
-class _AddConnectionPageState extends State<AddConnectionPage> {
+class _AddConnectionPageState extends State<AddConnectionPage>
+    with AutomaticKeepAliveClientMixin {
   String selectedCOntractor;
   String selectedZone;
   String selectedSaddle;
@@ -52,7 +55,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   bool _isSaddleLoading = false;
   bool _isZoneLoading = false;
   bool _isErrorShown = false;
-  bool _isOfflineSave = false;
+  bool _isOfflineSave = true;
   int getApiCount = 0;
   String latitude;
   String longitude;
@@ -65,10 +68,10 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
   void initState() {
     super.initState();
     _getCurrentLocation();
-    retryFunction();
+    !_isOfflineSave ? retryFunction() : offlineMode();
   }
 
-  void retryFunction() {
+  Future<void> retryFunction() async {
     getContractorsApi();
   }
 
@@ -114,6 +117,35 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     // <---------       END      -------->
   }
 
+  void offlineMode() async {
+    prefs = await SharedPreferences.getInstance();
+    tempContractors = [];
+    tempSaddles = [];
+    tempZones = [];
+    getContractors =
+        GetContractors.fromJson(json.decode(prefs.getString("contractors")));
+    getSaddles = GetSaddles.fromJson(json.decode(prefs.getString("saddles")));
+    getZones = GetZones.fromJson(json.decode(prefs.getString("zones")));
+
+    getContractors.data.forEach((e) {
+      tempContractors
+          .add(DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
+      setState(() {});
+    });
+
+    getSaddles.data.forEach((e) {
+      tempSaddles.add(
+          DropdownMenuItem(value: e.id.toString(), child: Text(e.saddleName)));
+      setState(() {});
+    });
+
+    getZones.data.forEach((e) {
+      tempZones.add(
+          DropdownMenuItem(value: e.id.toString(), child: Text(e.zoneName)));
+      setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -127,6 +159,22 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             appBar: AppBar(
                 title: Text("Add Connection"),
                 actions: [
+                  Switch(
+                    value: _isOfflineSave,
+                    onChanged: (value) {
+                      setState(() {
+                        _isOfflineSave = value;
+                        print(_isOfflineSave);
+                        if (_isOfflineSave) {
+                          offlineMode();
+                        } else {
+                          retryFunction();
+                        }
+                      });
+                    },
+                    activeTrackColor: Colors.lightGreenAccent,
+                    activeColor: Colors.green,
+                  ),
                   IconButton(
                       icon: Icon(Icons.logout),
                       onPressed: () async {
@@ -140,185 +188,207 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                       })
                 ],
                 backgroundColor: Colors.green[900]),
-            body: Form(
-              key: _formKeyConnection,
-              child: Container(
-                height: MediaQuery.of(context).size.height,
-                margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-                child: SingleChildScrollView(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                      // shrinkWrap: true,
-                      children: [
-                        buildDropdownButtonFormField(
-                            "Contractor",
-                            selectedCOntractor,
-                            tempContractors,
-                            _isContractorLoading),
-                        buildTextFormField("Consumer Name", null, consumerName,
-                            false, TextInputType.name, null, formAutoValidate),
-                        // Container(
-                        //   child: Column(
-                        //     crossAxisAlignment: CrossAxisAlignment.start,
-                        //     children: [
-                        //       SizedBox(height: 15),
-                        //       Text(
-                        //         "Consumer Name" + " *",
-                        //         style: TextStyle(
-                        //             color: Colors.black38,
-                        //             fontWeight: FontWeight.w500),
-                        //       ),
-                        //       Container(
-                        //         // height: 40,
-                        //         child: TextFormField(
-                        //             minLines: false ? null : 1,
-                        //             maxLines: false ? null : 1,
-                        //             maxLength: null,
-                        //             validator: (text) {
-                        //               // if (controller == consumerMobile) {
-                        //               //   if (text.isEmpty || text.length < 10 || text.length > 10) {
-                        //               //     return "Mobile Number should be 10 digits";
-                        //               //   }
-                        //               // } else {
-                        //               if (text.isEmpty) {
-                        //                 return "Field should not be empty";
-                        //               }
-                        //               // }
-                        //               return null;
-                        //             },
-                        //             enableSuggestions: true,
-                        //             autocorrect: false,
-                        //             keyboardType: TextInputType.name,
-                        //             controller: consumerName,
-                        //             decoration: InputDecoration(
-                        //                 enabledBorder: UnderlineInputBorder(
-                        //                     borderSide: const BorderSide(
-                        //                         color: Colors.black26)),
-                        //                 labelStyle:
-                        //                     TextStyle(color: Colors.black54))),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
-                        buildDropdownButtonFormField(
-                            "Zone", selectedZone, tempZones, _isZoneLoading),
-                        buildTextFormField(
-                            "Address",
-                            null,
-                            consumerAddress,
-                            true,
-                            TextInputType.streetAddress,
-                            null,
-                            formAutoValidate),
-                        buildTextFormField("Mobile No.", null, consumerMobile,
-                            false, TextInputType.number, 10, formAutoValidate),
-                        buildDropdownButtonFormField("Saddle", selectedSaddle,
-                            tempSaddles, _isSaddleLoading),
-                        buildFerruleRadioButton("Ferrule"),
-                        buildRoadCrossingRadioButton("Road Crossing"),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          width: MediaQuery.of(context).size.width / 2.8,
-                          child: buildTextFormField(
-                              "MDPE Pipe Length",
-                              "mtrs",
-                              mdpePipeLenth,
-                              false,
-                              TextInputType.number,
-                              null,
-                              formAutoValidate),
-                        ),
-                        SizedBox(
-                          height: 20,
-                        ),
-                        Container(
-                          // alignment: Alignment.center,
-                          width: fileName != null
-                              ? MediaQuery.of(context).size.width / 3
-                              : MediaQuery.of(context).size.width / 2,
-                          child: OutlineButton(
-                            child: fileName != null
-                                ? Image.file(
-                                    imagePath,
-                                    height: 150,
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.photo_camera),
-                                      SizedBox(width: 10),
-                                      Text(
-                                        "Add Photo",
+            body: RefreshIndicator(
+              onRefresh: retryFunction,
+              child: Center(
+                child: Form(
+                  key: _formKeyConnection,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height,
+                    margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
+                    child: SingleChildScrollView(
+                      child:
+                          Column(crossAxisAlignment: CrossAxisAlignment.start,
+                              // shrinkWrap: true,
+                              children: [
+                            buildDropdownButtonFormField(
+                                "Contractor",
+                                selectedCOntractor,
+                                tempContractors,
+                                _isContractorLoading),
+                            buildTextFormField(
+                                "Consumer Name",
+                                null,
+                                consumerName,
+                                false,
+                                TextInputType.name,
+                                null,
+                                formAutoValidate),
+                            // Container(
+                            //   child: Column(
+                            //     crossAxisAlignment: CrossAxisAlignment.start,
+                            //     children: [
+                            //       SizedBox(height: 15),
+                            //       Text(
+                            //         "Consumer Name" + " *",
+                            //         style: TextStyle(
+                            //             color: Colors.black38,
+                            //             fontWeight: FontWeight.w500),
+                            //       ),
+                            //       Container(
+                            //         // height: 40,
+                            //         child: TextFormField(
+                            //             minLines: false ? null : 1,
+                            //             maxLines: false ? null : 1,
+                            //             maxLength: null,
+                            //             validator: (text) {
+                            //               // if (controller == consumerMobile) {
+                            //               //   if (text.isEmpty || text.length < 10 || text.length > 10) {
+                            //               //     return "Mobile Number should be 10 digits";
+                            //               //   }
+                            //               // } else {
+                            //               if (text.isEmpty) {
+                            //                 return "Field should not be empty";
+                            //               }
+                            //               // }
+                            //               return null;
+                            //             },
+                            //             enableSuggestions: true,
+                            //             autocorrect: false,
+                            //             keyboardType: TextInputType.name,
+                            //             controller: consumerName,
+                            //             decoration: InputDecoration(
+                            //                 enabledBorder: UnderlineInputBorder(
+                            //                     borderSide: const BorderSide(
+                            //                         color: Colors.black26)),
+                            //                 labelStyle:
+                            //                     TextStyle(color: Colors.black54))),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
+                            buildDropdownButtonFormField("Zone", selectedZone,
+                                tempZones, _isZoneLoading),
+                            buildTextFormField(
+                                "Address",
+                                null,
+                                consumerAddress,
+                                true,
+                                TextInputType.streetAddress,
+                                null,
+                                formAutoValidate),
+                            buildTextFormField(
+                                "Mobile No.",
+                                null,
+                                consumerMobile,
+                                false,
+                                TextInputType.number,
+                                10,
+                                formAutoValidate),
+                            buildDropdownButtonFormField("Saddle",
+                                selectedSaddle, tempSaddles, _isSaddleLoading),
+                            buildFerruleRadioButton("Ferrule"),
+                            buildRoadCrossingRadioButton("Road Crossing"),
+                            Container(
+                              alignment: Alignment.centerLeft,
+                              width: MediaQuery.of(context).size.width / 2.8,
+                              child: buildTextFormField(
+                                  "MDPE Pipe Length",
+                                  "mtrs",
+                                  mdpePipeLenth,
+                                  false,
+                                  TextInputType.number,
+                                  null,
+                                  formAutoValidate),
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Container(
+                              // alignment: Alignment.center,
+                              width: fileName != null
+                                  ? MediaQuery.of(context).size.width / 3
+                                  : MediaQuery.of(context).size.width / 2,
+                              child: OutlineButton(
+                                child: fileName != null
+                                    ? Image.file(
+                                        imagePath,
+                                        height: 150,
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.photo_camera),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            "Add Photo",
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.black,
+                                                letterSpacing: 2),
+                                          ),
+                                        ],
+                                      ),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                onPressed: () {
+                                  getImageFromCamera(context);
+                                },
+                                // icon: fileName != null
+                                //     ? null
+                                //     : Icon(Icons.photo_camera)
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            !_isOfflineSave
+                                ? Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 1,
+                                    child: RaisedButton(
+                                      padding:
+                                          EdgeInsets.fromLTRB(40, 10, 40, 10),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      onPressed: btnEnabled
+                                          ? () {
+                                              isEmpty();
+                                            }
+                                          : null,
+                                      color: btnEnabled
+                                          ? Colors.black
+                                          : Colors.black54,
+                                      child: Text(
+                                        "Save",
                                         style: TextStyle(
                                             fontSize: 15,
-                                            color: Colors.black,
+                                            color: Colors.white,
                                             letterSpacing: 2),
                                       ),
-                                    ],
+                                    ),
+                                  )
+                                : Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 1,
+                                    child: RaisedButton(
+                                      padding:
+                                          EdgeInsets.fromLTRB(40, 10, 40, 10),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      onPressed: btnEnabled
+                                          ? () {
+                                              isEmpty();
+                                            }
+                                          : null,
+                                      color: btnEnabled
+                                          ? Colors.black
+                                          : Colors.black54,
+                                      child: Text(
+                                        "Offline Save",
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            color: Colors.white,
+                                            letterSpacing: 2),
+                                      ),
+                                    ),
                                   ),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            onPressed: () {
-                              getImageFromCamera(context);
-                            },
-                            // icon: fileName != null
-                            //     ? null
-                            //     : Icon(Icons.photo_camera)
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Container(
-                              // width: MediaQuery.of(context).size.width / 1,
-                              child: RaisedButton(
-                                padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                                onPressed: btnEnabled
-                                    ? () {
-                                        isEmpty();
-                                      }
-                                    : null,
-                                color:
-                                    btnEnabled ? Colors.black : Colors.black54,
-                                child: Text(
-                                  "Save",
-                                  style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                      letterSpacing: 2),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              // width: MediaQuery.of(context).size.width / 1,
-                              child: RaisedButton(
-                                padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                                onPressed: btnEnabled
-                                    ? () {
-                                        offlineSave();
-                                      }
-                                    : null,
-                                color:
-                                    btnEnabled ? Colors.black : Colors.black54,
-                                child: Text(
-                                  "Offline Save",
-                                  style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                      letterSpacing: 2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ]),
+                          ]),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -557,7 +627,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
       }
 
       if (flag == 0) {
-        submitDetails();
+        _isOfflineSave ? offlineSave() : submitDetails();
       }
     } else {
       print("aal fileds not filled");
@@ -638,6 +708,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
         if (response.statusCode == 200) {
           getContractors = GetContractors.fromJson(response.data);
+          prefs.setString("contractors", json.encode(response.data));
           setState(() {
             _isContractorLoading = false;
           });
@@ -703,6 +774,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
         if (response.statusCode == 200) {
           getSaddles = GetSaddles.fromJson(response.data);
+          prefs.setString("saddles", json.encode(response.data));
           setState(() {
             _isSaddleLoading = false;
           });
@@ -777,6 +849,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
 
         if (response.statusCode == 200) {
           getZones = GetZones.fromJson(response.data);
+          prefs.setString("zones", json.encode(response.data));
           setState(() {
             _isZoneLoading = false;
           });
@@ -906,6 +979,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
                 prefs.getStringList("mdpePipeList") ?? [];
             final List<String> uploadStatusList =
                 prefs.getStringList("uploadStatusList") ?? [];
+            final List<String> connectionDates =
+                prefs.getStringList("connectionDates") ?? [];
 
             consumerNamesList.add(consumerName.text);
             getContractors.data.forEach((element) {
@@ -933,6 +1008,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             ferruleList.add(ferruleValue ? "1" : "0");
             mdpePipeList.add(mdpePipeLenth.text);
             uploadStatusList.add("No");
+            connectionDates
+                .add(DateFormat("dd/MM/yyyy").format(DateTime.now()));
 
             prefs.setStringList("consumerNamesList", consumerNamesList);
             prefs.setStringList("contractorList", contractorList);
@@ -944,6 +1021,7 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
             prefs.setStringList("roadCrossingList", roadCrossingList);
             prefs.setStringList("mdpePipeList", mdpePipeList);
             prefs.setStringList("uploadStatusList", uploadStatusList);
+            prefs.setStringList("connectionDates", connectionDates);
 
             setState(() {
               consumerName.text = "";
@@ -1033,23 +1111,29 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     final List<String> mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
     final List<String> uploadStatusList =
         prefs.getStringList("uploadStatusList") ?? [];
+    final List<String> connectionDates =
+        prefs.getStringList("connectionDates") ?? [];
+    final List<String> consumerlat =
+        prefs.getStringList("connectionDates") ?? [];
+    final List<String> consumerlang =
+        prefs.getStringList("connectionDates") ?? [];
 
     consumerNamesList.add(consumerName.text);
     getContractors.data.forEach((element) {
       if (element.id == int.parse(selectedCOntractor)) {
-        contractorList.add(element.name);
+        contractorList.add(element.name + ",${element.id}");
         return;
       }
     });
     getZones.data.forEach((element) {
       if (element.id == int.parse(selectedZone)) {
-        zonesList.add(element.zoneName);
+        zonesList.add(element.zoneName + ",${element.id}");
         return;
       }
     });
     getSaddles.data.forEach((element) {
       if (element.id == int.parse(selectedSaddle)) {
-        saddlesList.add(element.saddleName);
+        saddlesList.add(element.saddleName + ",${element.id}");
         return;
       }
     });
@@ -1060,6 +1144,9 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     ferruleList.add(ferruleValue ? "1" : "0");
     mdpePipeList.add(mdpePipeLenth.text);
     uploadStatusList.add("No");
+    connectionDates.add(DateFormat("dd/MM/yyyy").format(DateTime.now()));
+    consumerlat.add(_currentPosition.latitude.toString());
+    consumerlang.add(_currentPosition.longitude.toString());
 
     prefs.setStringList("consumerNamesList", consumerNamesList);
     prefs.setStringList("contractorList", contractorList);
@@ -1072,6 +1159,9 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     prefs.setStringList("roadCrossingList", roadCrossingList);
     prefs.setStringList("mdpePipeList", mdpePipeList);
     prefs.setStringList("uploadStatusList", uploadStatusList);
+    prefs.setStringList("connectionDates", connectionDates);
+    prefs.setStringList("consumerlat", consumerlat);
+    prefs.setStringList("consumerlang", consumerlang);
 
     // setState(() {
     //   consumerName.text = "";
@@ -1087,4 +1177,8 @@ class _AddConnectionPageState extends State<AddConnectionPage> {
     //   fileName = null;
     // });
   }
+
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }
