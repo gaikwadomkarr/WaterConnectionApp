@@ -1,11 +1,15 @@
 import 'dart:io';
-
+import 'dart:core';
 import 'package:dio/dio.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
 import 'package:waterconnection/Helpers/SessionData.dart';
+import 'package:waterconnection/Helpers/WaterConnectionDBHelper.dart';
+import 'package:waterconnection/Models/ConnectionDB.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
 
 class AllEntriesPage extends StatefulWidget {
@@ -17,6 +21,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   SharedPreferences prefs;
   int connectionCount = 0;
   bool _isLoading = false;
+  TextEditingController searchController = new TextEditingController();
+  final dbRef = WaterConnectionDBHelper();
+  List<ConnectionDb> connectionList;
   List<String> consumerNames = List<String>();
   List<String> consumerPhotos = List<String>();
   List<String> contractorNames = List<String>();
@@ -36,7 +43,54 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   @override
   void initState() {
     super.initState();
-    getEntries();
+    getDbList();
+  }
+
+  void getDbList() async {
+    connectionList = await dbRef.getConnections();
+    connectionCount = connectionList.length;
+    print("this is uploadStatus => " + connectionList[0].uploadStatus);
+    setState(() {});
+  }
+
+  Widget buildSearchbar() {
+    return Container(
+      height: 45,
+      margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(color: Colors.green, blurRadius: 5, offset: Offset(0, 1))
+        ],
+      ),
+      padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 10.0),
+      child: TextFormField(
+        // enabled: !_isDialogShowing,
+        decoration: new InputDecoration(
+          prefixIcon: Icon(
+            Icons.search,
+            size: 30,
+            color: FlavorConfig.instance.color,
+          ),
+          hintText: "Start typing to see Contact list",
+          enabledBorder: InputBorder.none,
+          counterText: "",
+          hintStyle: blackStyle().copyWith(color: Colors.black54),
+        ),
+        controller: searchController,
+        onChanged: (value) {
+          print("Print onChange value $value");
+          getChangedList(value);
+        },
+      ),
+    );
+  }
+
+  void getChangedList(String name) async {
+    connectionList = null;
+    connectionList = await dbRef.getConnectionsByName(name);
+    setState(() {});
   }
 
   void getEntries() async {
@@ -82,102 +136,153 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
               ],
               backgroundColor: Colors.green[900]),
           body: Center(
-              child: consumerNames.length > 0
-                  ? Container(
-                      child: ListView.builder(
-                        itemCount: consumerNames.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          //   return ListTile(
-                          //       leading: Card(
-                          //           elevation: 3,
-                          //           child: CircleAvatar(
-                          //               radius: 10,
-                          //               backgroundColor: Colors.white,
-                          //               backgroundImage: FileImage(
-                          //                   File(consumerPhotos[index])),
-                          //               child: null)));
-                          return Card(
-                            margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
-                            color: uploadStatusList[index] == "No"
-                                ? Colors.green[100]
-                                : Colors.white,
-                            elevation: 3,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            child: ExpansionTile(
-                              tilePadding: EdgeInsets.symmetric(horizontal: 5),
-                              // backgroundColor: uploadStatusList[index] == "No"
-                              //     ? Colors.lightGreen
-                              //     : Colors.white,
-                              title: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    consumerNames[index],
-                                    style: greenStyle().copyWith(fontSize: 15),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(mobileNumbersList[index] ?? "--",
-                                      style:
-                                          greenStyle().copyWith(fontSize: 13)),
-                                  Text(
-                                    connectionDates[index],
-                                    style: blackStyle().copyWith(
-                                      fontSize: 12,
-                                    ),
-                                  )
-                                ],
-                              ),
-                              leading: Card(
+              child: Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
+            child: Column(
+              children: [
+                Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [Flexible(flex: 1, child: buildSearchbar())]),
+                connectionList != null
+                    ? connectionList.length > 0
+                        ? Expanded(
+                            child: ListView.builder(
+                              itemCount: connectionList.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                //   return ListTile(
+                                //       leading: Card(
+                                //           elevation: 3,
+                                //           child: CircleAvatar(
+                                //               radius: 10,
+                                //               backgroundColor: Colors.white,
+                                //               backgroundImage: FileImage(
+                                //                   File(consumerPhotos[index])),
+                                //               child: null)));
+                                return Card(
+                                  margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
+                                  color:
+                                      connectionList[index].uploadStatus == "No"
+                                          ? Colors.green[100]
+                                          : Colors.white,
+                                  elevation: 3,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(25)),
-                                  elevation: 10,
-                                  child: CircleAvatar(
-                                      radius: 25,
-                                      backgroundColor: Colors.white,
-                                      backgroundImage: FileImage(
-                                          File(consumerPhotos[index])),
-                                      child: null)),
-                              trailing: uploadStatusList[index] == "No"
-                                  ? Row(
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: ExpansionTile(
+                                    tilePadding:
+                                        EdgeInsets.symmetric(horizontal: 5),
+                                    // backgroundColor: uploadStatusList[index] == "No"
+                                    //     ? Colors.lightGreen
+                                    //     : Colors.white,
+                                    title: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                          IconButton(
-                                            icon: Icon(Icons.upload_sharp),
-                                            onPressed: () {
-                                              print("i clicked upload button");
-                                            },
-                                          )
-                                        ])
-                                  : null,
+                                        Text(
+                                          connectionList[index].consumerName,
+                                          style: greenStyle()
+                                              .copyWith(fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                    subtitle: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                            connectionList[index]
+                                                    .consumerMobile ??
+                                                "--",
+                                            style: greenStyle()
+                                                .copyWith(fontSize: 13)),
+                                        Text(
+                                          connectionList[index].createdAt ??
+                                              "-",
+                                          style: blackStyle().copyWith(
+                                            fontSize: 12,
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                    leading: Card(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(25)),
+                                        elevation: 10,
+                                        child: CircleAvatar(
+                                            radius: 25,
+                                            backgroundColor: Colors.white,
+                                            backgroundImage: FileImage(File(
+                                                connectionList[index]
+                                                    .consumerPhoto)),
+                                            child: null)),
+                                    trailing:
+                                        connectionList[index].uploadStatus ==
+                                                "No"
+                                            ? Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                    IconButton(
+                                                      icon: Icon(
+                                                          Icons.delete_outline),
+                                                      onPressed: () {
+                                                        print(
+                                                            "i clicked upload button");
+                                                      },
+                                                    )
+                                                  ])
+                                            : null,
+                                    children: [
+                                      internalDetails("Contractor",
+                                          connectionList[index].contractor),
+                                      internalDetails(
+                                          "Zone", connectionList[index].zone),
+                                      internalDetails("Saddle",
+                                          connectionList[index].saddle),
+                                      internalDetails("Ferrule",
+                                          connectionList[index].ferrule),
+                                      internalDetails("Road Crossing",
+                                          connectionList[index].roadCrossing),
+                                      internalDetails(
+                                          "Mdpe Pipe",
+                                          connectionList[index].mdpePipeLength +
+                                              " mtrs")
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                internalDetails("Contractor",
-                                    contractorNames[index].split(",").first),
-                                internalDetails(
-                                    "Zone", zonesList[index].split(",").first),
-                                internalDetails("Saddle",
-                                    saddlesList[index].split(",").first),
-                                internalDetails("Ferrule",
-                                    (ferruleList[index] == "1") ? "Yes" : "No"),
-                                internalDetails(
-                                    "Road Crossing",
-                                    (roadCrossingList[index] == "1")
-                                        ? "Yes"
-                                        : "No"),
-                                internalDetails(
-                                    "Mdpe Pipe", mdpePipeList[index] + " mtrs")
+                                Container(
+                                    alignment: Alignment.center,
+                                    child: Text("No Entries yet !!")),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    )
-                  : Container(child: Text("No Entries yet !!"))),
+                          )
+                    : Center(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                            SpinKitRing(
+                              lineWidth: 3,
+                              color: Colors.green[900],
+                              size: 40.0,
+                              duration: Duration(milliseconds: 1000),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              "Loading...",
+                              // style: regularTxtStyle,
+                            )
+                          ])),
+              ],
+            ),
+          )),
         ),
       ),
     );

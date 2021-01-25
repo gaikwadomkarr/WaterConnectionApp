@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:waterconnection/Models/ConnectionDB.dart';
 
 class WaterConnectionDBHelper {
   static final WaterConnectionDBHelper instance =
@@ -23,8 +25,9 @@ class WaterConnectionDBHelper {
   }
 
   Future<Database> init() async {
-    Directory directory = await getApplicationDocumentsDirectory();
+    Directory directory = await getExternalStorageDirectory();
     String dbPath = join(directory.path, 'WaterConnection.db');
+    print("this is db path => " + dbPath.toString());
     var database = openDatabase(
       dbPath,
       version: 2,
@@ -55,9 +58,75 @@ class WaterConnectionDBHelper {
         saddleId INTEGER,
         contractorId INTEGER,
         branchId INTEGER,
-        created_by INTEGER
+        created_by INTEGER,
+        uploadStatus TEXT
         )
     ''');
     print("Database was created!");
+  }
+
+  void saveConnection(ConnectionDb connectionDb) async {
+    var client = await db;
+    client.insert('connections', connectionDb.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    print("entry made to database");
+  }
+
+  Future<List<ConnectionDb>> getConnections() async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList =
+        await client.query('connections');
+    return List.generate(connectionList.length, (i) {
+      return ConnectionDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          contractor: connectionList[i]['contractor'],
+          saddle: connectionList[i]['saddle'],
+          zone: connectionList[i]['zone'],
+          consumerMobile: connectionList[i]['consumerMobile'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          ferrule: connectionList[i]['ferrule'],
+          roadCrossing: connectionList[i]['roadCrossing'],
+          mdpePipeLength: connectionList[i]['mdpePipeLength'],
+          zoneId: connectionList[i]['zoneId'],
+          saddleId: connectionList[i]['saddleId'],
+          contractorId: connectionList[i]['contractorId'],
+          branchId: connectionList[i]['branchId'],
+          createdBy: connectionList[i]['created_by'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<ConnectionDb>> getConnectionsByName(name) async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList = await client.rawQuery(
+        "SELECT * from connections WHERE consumerName like '%$name%'");
+    return List.generate(connectionList.length, (i) {
+      return ConnectionDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          contractor: connectionList[i]['contractor'],
+          saddle: connectionList[i]['saddle'],
+          zone: connectionList[i]['zone'],
+          consumerMobile: connectionList[i]['consumerMobile'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          ferrule: connectionList[i]['ferrule'],
+          roadCrossing: connectionList[i]['roadCrossing'],
+          mdpePipeLength: connectionList[i]['mdpePipeLength'],
+          zoneId: connectionList[i]['zoneId'],
+          saddleId: connectionList[i]['saddleId'],
+          contractorId: connectionList[i]['contractorId'],
+          branchId: connectionList[i]['branchId'],
+          createdBy: connectionList[i]['created_by'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
   }
 }
