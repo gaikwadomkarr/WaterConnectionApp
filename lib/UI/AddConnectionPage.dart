@@ -665,6 +665,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
                 minLines: expands ? null : 1,
                 maxLines: expands ? null : 1,
                 maxLength: maxLength,
+                textCapitalization: TextCapitalization.words,
                 validator: (text) {
                   if (controller == consumerMobile) {
                     if (text.isEmpty || text.length < 10 || text.length > 10) {

@@ -21,6 +21,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   SharedPreferences prefs;
   int connectionCount = 0;
   bool _isLoading = false;
+  bool showCrossMark = false;
+  bool showdateRange = false;
+  DateTimeRange dateRange;
   TextEditingController searchController = new TextEditingController();
   final dbRef = WaterConnectionDBHelper();
   List<ConnectionDb> connectionList;
@@ -56,15 +59,16 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   Widget buildSearchbar() {
     return Container(
       height: 45,
+      // width: MediaQuery.of(context).size.width,
       margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(50),
         boxShadow: [
           BoxShadow(color: Colors.green, blurRadius: 5, offset: Offset(0, 1))
         ],
       ),
-      padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 10.0),
+      padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
       child: TextFormField(
         // enabled: !_isDialogShowing,
         decoration: new InputDecoration(
@@ -73,14 +77,36 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
             size: 30,
             color: FlavorConfig.instance.color,
           ),
-          hintText: "Start typing to see Contact list",
-          enabledBorder: InputBorder.none,
+          suffixIcon: showCrossMark
+              ? IconButton(
+                  icon: Icon(Icons.highlight_remove_outlined),
+                  onPressed: () async {
+                    setState(() {
+                      searchController.text = "";
+                      showCrossMark = false;
+                      connectionList = null;
+                    });
+                    connectionList = await dbRef.getConnections();
+                  },
+                )
+              : null,
+          hintText: "Search by name",
+          border: InputBorder.none,
           counterText: "",
           hintStyle: blackStyle().copyWith(color: Colors.black54),
         ),
         controller: searchController,
         onChanged: (value) {
           print("Print onChange value $value");
+          if (value.length > 0) {
+            setState(() {
+              showCrossMark = true;
+            });
+          } else if (value.length == 0) {
+            setState(() {
+              showCrossMark = false;
+            });
+          }
           getChangedList(value);
         },
       ),
@@ -119,6 +145,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
       onWillPop: () async => false,
       child: SafeArea(
         child: Scaffold(
+          backgroundColor: Colors.white,
           appBar: AppBar(
               title: Text("All Entries ($connectionCount)"),
               actions: [
@@ -141,9 +168,93 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
             height: MediaQuery.of(context).size.height,
             child: Column(
               children: [
-                Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [Flexible(flex: 1, child: buildSearchbar())]),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  !showdateRange
+                      ? Flexible(flex: 8, child: buildSearchbar())
+                      : Flexible(
+                          flex: 8,
+                          child: Container(
+                            margin: EdgeInsets.symmetric(
+                                vertical: 10.0, horizontal: 10.0),
+                            height: 45,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(50),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.green,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 1))
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Container(
+                                  margin: EdgeInsets.symmetric(horizontal: 15),
+                                  child: RichText(
+                                      text: TextSpan(children: <TextSpan>[
+                                    TextSpan(
+                                      text: DateFormat("dd/MM/yyyy")
+                                          .format(dateRange.start),
+                                      style: greenStyle().copyWith(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: "   To    ",
+                                      style: greenStyle(),
+                                    ),
+                                    TextSpan(
+                                      text: DateFormat("dd/MM/yyyy")
+                                          .format(dateRange.end),
+                                      style: greenStyle().copyWith(
+                                          fontWeight: FontWeight.bold),
+                                    )
+                                  ])),
+                                ),
+                                IconButton(
+                                    icon: Icon(Icons.highlight_remove_outlined),
+                                    onPressed: () {
+                                      setState(() {
+                                        showdateRange = false;
+                                        dateRange = null;
+                                        getChangedList("");
+                                      });
+                                    })
+                              ],
+                            ),
+                          )),
+                  Flexible(
+                    flex: 2,
+                    child: IconButton(
+                      icon: Icon(Icons.date_range_outlined,
+                          size: 30, color: FlavorConfig.instance.color),
+                      onPressed: () async {
+                        final picked = await showDateRangePicker(
+                            initialEntryMode: DatePickerEntryMode.calendar,
+                            firstDate: DateTime(2021),
+                            context: context,
+                            currentDate: DateTime.now(),
+                            lastDate: DateTime.now());
+                        if (picked != null) {
+                          print(picked);
+                          setState(() {
+                            showdateRange = true;
+                            dateRange = picked;
+                            connectionList = null;
+                          });
+                          connectionList = await dbRef.getConnectionsByDate(
+                              DateFormat("dd-MM-yyyy").format(picked.start),
+                              DateFormat("dd-MM-yyyy").format(picked.end));
+                          setState(() {});
+                        }
+                        print(picked.start.toString() +
+                            " - " +
+                            picked.end.toString());
+                      },
+                    ),
+                  )
+                ]),
                 connectionList != null
                     ? connectionList.length > 0
                         ? Expanded(
@@ -177,11 +288,11 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                     title: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          connectionList[index].consumerName,
-                                          style: greenStyle()
-                                              .copyWith(fontSize: 15),
-                                        ),
+                                        Text(connectionList[index].consumerName,
+                                            style: greenStyle().copyWith(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            )),
                                       ],
                                     ),
                                     subtitle: Row(
@@ -238,10 +349,17 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                           "Zone", connectionList[index].zone),
                                       internalDetails("Saddle",
                                           connectionList[index].saddle),
-                                      internalDetails("Ferrule",
-                                          connectionList[index].ferrule),
-                                      internalDetails("Road Crossing",
-                                          connectionList[index].roadCrossing),
+                                      internalDetails(
+                                          "Ferrule",
+                                          (connectionList[index].ferrule == "1")
+                                              ? "Yes"
+                                              : "No"),
+                                      internalDetails(
+                                          "Road Crossing",
+                                          (connectionList[index].roadCrossing ==
+                                                  "1"
+                                              ? "Yes"
+                                              : "No")),
                                       internalDetails(
                                           "Mdpe Pipe",
                                           connectionList[index].mdpePipeLength +

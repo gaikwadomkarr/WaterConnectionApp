@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     FlavorConfig(
         flavor: Flavor.PRODUCTION,
         appVersion: "1",
-        color: Colors.black,
+        color: Colors.green[900],
         versionCode: 1);
     return MaterialApp(
       title: 'Water Meter Connection',

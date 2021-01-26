@@ -129,4 +129,39 @@ class WaterConnectionDBHelper {
           uploadStatus: connectionList[i]["uploadStatus"]);
     });
   }
+
+  Future<List<ConnectionDb>> getConnectionsByDate(startDate, endDate) async {
+    final client = await db;
+    List<Map<String, dynamic>> connectionList = List<Map<String, dynamic>>();
+    // if (startDate == endDate) {
+    //   connectionList = await client
+    //       .rawQuery("SELECT * from connections WHERE created_at='$startDate'");
+    // } else {
+    connectionList = await client.rawQuery(
+        "SELECT * from connections WHERE created_at BETWEEN '$startDate' AND '$endDate'");
+    // }
+    return List.generate(connectionList.length, (i) {
+      return ConnectionDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          contractor: connectionList[i]['contractor'],
+          saddle: connectionList[i]['saddle'],
+          zone: connectionList[i]['zone'],
+          consumerMobile: connectionList[i]['consumerMobile'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          ferrule: connectionList[i]['ferrule'],
+          roadCrossing: connectionList[i]['roadCrossing'],
+          mdpePipeLength: connectionList[i]['mdpePipeLength'],
+          zoneId: connectionList[i]['zoneId'],
+          saddleId: connectionList[i]['saddleId'],
+          contractorId: connectionList[i]['contractorId'],
+          branchId: connectionList[i]['branchId'],
+          createdBy: connectionList[i]['created_by'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
 }
