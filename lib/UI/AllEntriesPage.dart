@@ -52,7 +52,6 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   void getDbList() async {
     connectionList = await dbRef.getConnections();
     connectionCount = connectionList.length;
-    print("this is uploadStatus => " + connectionList[0].uploadStatus);
     setState(() {});
   }
 
@@ -149,6 +148,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
           appBar: AppBar(
               title: Text("All Entries ($connectionCount)"),
               actions: [
+                IconButton(
+                    icon: Icon(Icons.cloud_upload_outlined),
+                    onPressed: () async {}),
                 IconButton(
                     icon: Icon(Icons.logout),
                     onPressed: () async {
@@ -271,6 +273,11 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                 //                   File(consumerPhotos[index])),
                                 //               child: null)));
                                 return Card(
+                                  shadowColor:
+                                      connectionList[index].uploadStatus == "No"
+                                          ? Colors.green
+                                          : Colors.grey[350],
+                                  semanticContainer: false,
                                   margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
                                   color:
                                       connectionList[index].uploadStatus == "No"
@@ -285,16 +292,17 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                     // backgroundColor: uploadStatusList[index] == "No"
                                     //     ? Colors.lightGreen
                                     //     : Colors.white,
-                                    title: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
+                                    // title: FittedBox(
+                                    //   fit: BoxFit.scaleDown,
+                                    //   alignment: Alignment.centerLeft,
+                                    title:
                                         Text(connectionList[index].consumerName,
+                                            textAlign: TextAlign.left,
                                             style: greenStyle().copyWith(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
                                             )),
-                                      ],
-                                    ),
+                                    // ),
                                     subtitle: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -326,22 +334,35 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                                 connectionList[index]
                                                     .consumerPhoto)),
                                             child: null)),
-                                    trailing:
-                                        connectionList[index].uploadStatus ==
-                                                "No"
-                                            ? Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                    IconButton(
-                                                      icon: Icon(
-                                                          Icons.delete_outline),
-                                                      onPressed: () {
-                                                        print(
-                                                            "i clicked upload button");
-                                                      },
-                                                    )
-                                                  ])
-                                            : null,
+                                    trailing: connectionList[index]
+                                                .uploadStatus ==
+                                            "No"
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                                IconButton(
+                                                  icon: Icon(
+                                                      Icons.delete_outline),
+                                                  onPressed: () async {
+                                                    print(
+                                                        "i clicked delete button => " +
+                                                            connectionList[
+                                                                    index]
+                                                                .id
+                                                                .toString());
+                                                    dbRef.deleteConnection(
+                                                        connectionList[index]
+                                                            .id);
+                                                    connectionList = null;
+                                                    connectionList = await dbRef
+                                                        .getConnections();
+                                                    connectionCount =
+                                                        connectionList.length;
+                                                    setState(() {});
+                                                  },
+                                                )
+                                              ])
+                                        : null,
                                     children: [
                                       internalDetails("Contractor",
                                           connectionList[index].contractor),
@@ -377,7 +398,12 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                               children: [
                                 Container(
                                     alignment: Alignment.center,
-                                    child: Text("No Entries yet !!")),
+                                    child: Text(
+                                      "No Entries yet !!",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20),
+                                    )),
                               ],
                             ),
                           )

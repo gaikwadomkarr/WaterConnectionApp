@@ -72,6 +72,12 @@ class WaterConnectionDBHelper {
     print("entry made to database");
   }
 
+  void deleteConnection(int id) async {
+    var client = await db;
+    client.delete("connections", where: "id = ?", whereArgs: [id]);
+    print("entry made to database");
+  }
+
   Future<List<ConnectionDb>> getConnections() async {
     final client = await db;
     final List<Map<String, dynamic>> connectionList =

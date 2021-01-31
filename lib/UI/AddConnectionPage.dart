@@ -174,6 +174,9 @@ class _AddConnectionPageState extends State<AddConnectionPage>
                         if (_isOfflineSave) {
                           offlineMode();
                         } else {
+                          tempContractors = [];
+                          tempSaddles = [];
+                          tempZones = [];
                           retryFunction();
                         }
                       });
@@ -964,72 +967,53 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             _isLoading = false;
           });
           if (response.data["code"] == 200) {
-            // final List<String> consumerNamesList =
-            //     prefs.getStringList("consumerNamesList") ?? [];
-            // final List<String> contractorList =
-            //     prefs.getStringList("contractorList") ?? [];
-            // final List<String> consumerPhotosList =
-            //     prefs.getStringList("consumerPhotosList") ?? [];
-            // final List<String> zonesList =
-            //     prefs.getStringList("zonesList") ?? [];
-            // final List<String> addressList =
-            //     prefs.getStringList("addressList") ?? [];
-            // final List<String> mobileNumbersList =
-            //     prefs.getStringList("addressList") ?? [];
-            // final List<String> saddlesList =
-            //     prefs.getStringList("saddlesList") ?? [];
-            // final List<String> ferruleList =
-            //     prefs.getStringList("ferruleList") ?? [];
-            // final List<String> roadCrossingList =
-            //     prefs.getStringList("roadCrossingList") ?? [];
-            // final List<String> mdpePipeList =
-            //     prefs.getStringList("mdpePipeList") ?? [];
-            // final List<String> uploadStatusList =
-            //     prefs.getStringList("uploadStatusList") ?? [];
-            // final List<String> connectionDates =
-            //     prefs.getStringList("connectionDates") ?? [];
+            dbRef.init();
+            var contractor;
+            var saddleName;
+            var zoneName;
+            getContractors.data.forEach((element) {
+              if (element.id == int.parse(selectedCOntractor)) {
+                contractor = element.name;
+              }
+            });
 
-            // consumerNamesList.add(consumerName.text);
-            // getContractors.data.forEach((element) {
-            //   if (element.id == int.parse(selectedCOntractor)) {
-            //     contractorList.add(selectedCOntractor);
-            //     return;
-            //   }
-            // });
-            // getZones.data.forEach((element) {
-            //   if (element.id == int.parse(selectedZone)) {
-            //     zonesList.add(selectedZone);
-            //     return;
-            //   }
-            // });
-            // getSaddles.data.forEach((element) {
-            //   if (element.id == int.parse(selectedSaddle)) {
-            //     saddlesList.add(selectedSaddle);
-            //     return;
-            //   }
-            // });
-            // consumerPhotosList.add(imagePath.path);
-            // addressList.add(consumerAddress.text);
-            // mobileNumbersList.add(consumerMobile.text);
-            // roadCrossingList.add(roadCrossingValue ? "1" : "0");
-            // ferruleList.add(ferruleValue ? "1" : "0");
-            // mdpePipeList.add(mdpePipeLenth.text);
-            // uploadStatusList.add("No");
-            // connectionDates
-            //     .add(DateFormat("dd/MM/yyyy").format(DateTime.now()));
+            getSaddles.data.forEach((element) {
+              if (element.id == int.parse(selectedSaddle)) {
+                saddleName = element.saddleName;
+              }
+            });
 
-            // prefs.setStringList("consumerNamesList", consumerNamesList);
-            // prefs.setStringList("contractorList", contractorList);
-            // prefs.setStringList("consumerPhotosList", consumerPhotosList);
-            // prefs.setStringList("zonesList", zonesList);
-            // prefs.setStringList("addressList", addressList);
-            // prefs.setStringList("saddlesList", saddlesList);
-            // prefs.setStringList("ferruleList", ferruleList);
-            // prefs.setStringList("roadCrossingList", roadCrossingList);
-            // prefs.setStringList("mdpePipeList", mdpePipeList);
-            // prefs.setStringList("uploadStatusList", uploadStatusList);
-            // prefs.setStringList("connectionDates", connectionDates);
+            getZones.data.forEach((element) {
+              if (element.id == int.parse(selectedZone)) {
+                zoneName = element.zoneName;
+              }
+            });
+            final createDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+            // var currentTimeInSecs = Utils.currentTimeInSeconds();
+            print("this is created at date  =>" + createDate);
 
+            final connection = ConnectionDb(
+                consumerName: consumerName.text,
+                consumerPhoto: imagePath.path,
+                contractor: contractor,
+                saddle: saddleName,
+                zone: zoneName,
+                consumerMobile: consumerMobile.text,
+                consumerAddress: consumerAddress.text,
+                latitude: _currentPosition.latitude.toString(),
+                longitude: _currentPosition.longitude.toString(),
+                createdAt: createDate,
+                ferrule: ferruleValue ? "1" : "0",
+                roadCrossing: roadCrossingValue ? "1" : "0",
+                mdpePipeLength: mdpePipeLenth.text,
+                zoneId: int.parse(selectedZone),
+                saddleId: int.parse(selectedSaddle),
+                contractorId: int.parse(selectedCOntractor),
+                branchId: SessionData().data.branchId,
+                createdBy: SessionData().data.id,
+                uploadStatus: _isOfflineSave ? "No" : "Yes");
+
+            dbRef.saveConnection(connection);
             setState(() {
               consumerName.text = "";
               consumerAddress.text = "";
