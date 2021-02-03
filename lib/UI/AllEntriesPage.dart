@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:core';
 import 'package:dio/dio.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
@@ -142,291 +144,305 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async => false,
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          appBar: AppBar(
-              title: Text("All Entries ($connectionCount)"),
-              actions: [
-                IconButton(
-                    icon: Icon(Icons.cloud_upload_outlined),
-                    onPressed: () async {}),
-                IconButton(
-                    icon: Icon(Icons.logout),
-                    onPressed: () async {
-                      prefs = await SharedPreferences.getInstance();
-                      prefs.remove("loggedin");
-                      prefs.remove("token");
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => LoginScreen()));
-                    })
-              ],
-              backgroundColor: Colors.green[900]),
-          body: Center(
-              child: Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Column(
-              children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  !showdateRange
-                      ? Flexible(flex: 8, child: buildSearchbar())
-                      : Flexible(
-                          flex: 8,
-                          child: Container(
-                            margin: EdgeInsets.symmetric(
-                                vertical: 10.0, horizontal: 10.0),
-                            height: 45,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(50),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.green,
-                                    blurRadius: 5,
-                                    offset: Offset(0, 1))
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Container(
-                                  margin: EdgeInsets.symmetric(horizontal: 15),
-                                  child: RichText(
-                                      text: TextSpan(children: <TextSpan>[
-                                    TextSpan(
-                                      text: DateFormat("dd/MM/yyyy")
-                                          .format(dateRange.start),
-                                      style: greenStyle().copyWith(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: "   To    ",
-                                      style: greenStyle(),
-                                    ),
-                                    TextSpan(
-                                      text: DateFormat("dd/MM/yyyy")
-                                          .format(dateRange.end),
-                                      style: greenStyle().copyWith(
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  ])),
-                                ),
-                                IconButton(
-                                    icon: Icon(Icons.highlight_remove_outlined),
-                                    onPressed: () {
-                                      setState(() {
-                                        showdateRange = false;
-                                        dateRange = null;
-                                        getChangedList("");
-                                      });
-                                    })
-                              ],
-                            ),
-                          )),
-                  Flexible(
-                    flex: 2,
-                    child: IconButton(
-                      icon: Icon(Icons.date_range_outlined,
-                          size: 30, color: FlavorConfig.instance.color),
+      child: ModalProgressHUD(
+        inAsyncCall: _isLoading,
+        child: SafeArea(
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+                title: Text("All Entries ($connectionCount)"),
+                actions: [
+                  IconButton(
+                      icon: Icon(Icons.cloud_upload_outlined),
                       onPressed: () async {
-                        final picked = await showDateRangePicker(
-                            initialEntryMode: DatePickerEntryMode.calendar,
-                            firstDate: DateTime(2021),
-                            context: context,
-                            currentDate: DateTime.now(),
-                            lastDate: DateTime.now());
-                        if (picked != null) {
-                          print(picked);
-                          setState(() {
-                            showdateRange = true;
-                            dateRange = picked;
-                            connectionList = null;
-                          });
-                          connectionList = await dbRef.getConnectionsByDate(
-                              DateFormat("dd-MM-yyyy").format(picked.start),
-                              DateFormat("dd-MM-yyyy").format(picked.end));
-                          setState(() {});
-                        }
-                        print(picked.start.toString() +
-                            " - " +
-                            picked.end.toString());
-                      },
-                    ),
-                  )
-                ]),
-                connectionList != null
-                    ? connectionList.length > 0
-                        ? Expanded(
-                            child: ListView.builder(
-                              itemCount: connectionList.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                //   return ListTile(
-                                //       leading: Card(
-                                //           elevation: 3,
-                                //           child: CircleAvatar(
-                                //               radius: 10,
-                                //               backgroundColor: Colors.white,
-                                //               backgroundImage: FileImage(
-                                //                   File(consumerPhotos[index])),
-                                //               child: null)));
-                                return Card(
-                                  shadowColor:
-                                      connectionList[index].uploadStatus == "No"
-                                          ? Colors.green
-                                          : Colors.grey[350],
-                                  semanticContainer: false,
-                                  margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
-                                  color:
-                                      connectionList[index].uploadStatus == "No"
-                                          ? Colors.green[100]
-                                          : Colors.white,
-                                  elevation: 3,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10)),
-                                  child: ExpansionTile(
-                                    tilePadding:
-                                        EdgeInsets.symmetric(horizontal: 5),
-                                    // backgroundColor: uploadStatusList[index] == "No"
-                                    //     ? Colors.lightGreen
-                                    //     : Colors.white,
-                                    // title: FittedBox(
-                                    //   fit: BoxFit.scaleDown,
-                                    //   alignment: Alignment.centerLeft,
-                                    title:
-                                        Text(connectionList[index].consumerName,
-                                            textAlign: TextAlign.left,
-                                            style: greenStyle().copyWith(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            )),
-                                    // ),
-                                    subtitle: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                        submitDetails();
+                      }),
+                  IconButton(
+                      icon: Icon(Icons.logout),
+                      onPressed: () async {
+                        prefs = await SharedPreferences.getInstance();
+                        prefs.remove("loggedin");
+                        prefs.remove("token");
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => LoginScreen()));
+                      })
+                ],
+                backgroundColor: Colors.green[900]),
+            body: Center(
+                child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              child: Column(
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    !showdateRange
+                        ? Flexible(flex: 8, child: buildSearchbar())
+                        : Flexible(
+                            flex: 8,
+                            child: Container(
+                              margin: EdgeInsets.symmetric(
+                                  vertical: 10.0, horizontal: 10.0),
+                              height: 45,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(50),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Colors.green,
+                                      blurRadius: 5,
+                                      offset: Offset(0, 1))
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Container(
+                                    margin:
+                                        EdgeInsets.symmetric(horizontal: 15),
+                                    child: RichText(
+                                        text: TextSpan(children: <TextSpan>[
+                                      TextSpan(
+                                        text: DateFormat("dd/MM/yyyy")
+                                            .format(dateRange.start),
+                                        style: greenStyle().copyWith(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: "   To    ",
+                                        style: greenStyle(),
+                                      ),
+                                      TextSpan(
+                                        text: DateFormat("dd/MM/yyyy")
+                                            .format(dateRange.end),
+                                        style: greenStyle().copyWith(
+                                            fontWeight: FontWeight.bold),
+                                      )
+                                    ])),
+                                  ),
+                                  IconButton(
+                                      icon:
+                                          Icon(Icons.highlight_remove_outlined),
+                                      onPressed: () {
+                                        setState(() {
+                                          showdateRange = false;
+                                          dateRange = null;
+                                          getChangedList("");
+                                        });
+                                      })
+                                ],
+                              ),
+                            )),
+                    Flexible(
+                      flex: 2,
+                      child: IconButton(
+                        icon: Icon(Icons.date_range_outlined,
+                            size: 30, color: FlavorConfig.instance.color),
+                        onPressed: () async {
+                          final picked = await showDateRangePicker(
+                              initialEntryMode: DatePickerEntryMode.calendar,
+                              firstDate: DateTime(2021),
+                              context: context,
+                              currentDate: DateTime.now(),
+                              lastDate: DateTime.now());
+                          if (picked != null) {
+                            print(picked);
+                            setState(() {
+                              showdateRange = true;
+                              dateRange = picked;
+                              connectionList = null;
+                            });
+                            connectionList = await dbRef.getConnectionsByDate(
+                                DateFormat("dd-MM-yyyy").format(picked.start),
+                                DateFormat("dd-MM-yyyy").format(picked.end));
+                            setState(() {});
+                          }
+                          print(picked.start.toString() +
+                              " - " +
+                              picked.end.toString());
+                        },
+                      ),
+                    )
+                  ]),
+                  connectionList != null
+                      ? connectionList.length > 0
+                          ? Expanded(
+                              child: ListView.builder(
+                                itemCount: connectionList.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  //   return ListTile(
+                                  //       leading: Card(
+                                  //           elevation: 3,
+                                  //           child: CircleAvatar(
+                                  //               radius: 10,
+                                  //               backgroundColor: Colors.white,
+                                  //               backgroundImage: FileImage(
+                                  //                   File(consumerPhotos[index])),
+                                  //               child: null)));
+                                  return Card(
+                                    shadowColor:
+                                        connectionList[index].uploadStatus ==
+                                                "No"
+                                            ? Colors.green
+                                            : Colors.grey[350],
+                                    semanticContainer: false,
+                                    margin: EdgeInsets.fromLTRB(20, 5, 20, 5),
+                                    color: connectionList[index].uploadStatus ==
+                                            "No"
+                                        ? Colors.green[100]
+                                        : Colors.white,
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: ExpansionTile(
+                                      tilePadding:
+                                          EdgeInsets.symmetric(horizontal: 5),
+                                      // backgroundColor: uploadStatusList[index] == "No"
+                                      //     ? Colors.lightGreen
+                                      //     : Colors.white,
+                                      // title: FittedBox(
+                                      //   fit: BoxFit.scaleDown,
+                                      //   alignment: Alignment.centerLeft,
+                                      title: Text(
+                                          connectionList[index].consumerName,
+                                          textAlign: TextAlign.left,
+                                          style: greenStyle().copyWith(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          )),
+                                      // ),
+                                      subtitle: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                              connectionList[index]
+                                                      .consumerMobile ??
+                                                  "--",
+                                              style: greenStyle()
+                                                  .copyWith(fontSize: 13)),
+                                          Text(
+                                            connectionList[index].createdAt ??
+                                                "-",
+                                            style: blackStyle().copyWith(
+                                              fontSize: 12,
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                      leading: Card(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(25)),
+                                          elevation: 10,
+                                          child: CircleAvatar(
+                                              radius: 25,
+                                              backgroundColor: Colors.white,
+                                              backgroundImage: FileImage(File(
+                                                  connectionList[index]
+                                                      .consumerPhoto)),
+                                              child: null)),
+                                      trailing: connectionList[index]
+                                                  .uploadStatus ==
+                                              "No"
+                                          ? Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                  IconButton(
+                                                    icon: Icon(
+                                                        Icons.delete_outline),
+                                                    onPressed: () async {
+                                                      print(
+                                                          "i clicked delete button => " +
+                                                              connectionList[
+                                                                      index]
+                                                                  .id
+                                                                  .toString());
+                                                      dbRef.deleteConnection(
+                                                          connectionList[index]
+                                                              .id);
+                                                      connectionList = null;
+                                                      connectionList =
+                                                          await dbRef
+                                                              .getConnections();
+                                                      connectionCount =
+                                                          connectionList.length;
+                                                      setState(() {});
+                                                    },
+                                                  )
+                                                ])
+                                          : null,
                                       children: [
-                                        Text(
+                                        internalDetails("Contractor",
+                                            connectionList[index].contractor),
+                                        internalDetails(
+                                            "Zone", connectionList[index].zone),
+                                        internalDetails("Saddle",
+                                            connectionList[index].saddle),
+                                        internalDetails(
+                                            "Ferrule",
+                                            (connectionList[index].ferrule ==
+                                                    "1")
+                                                ? "Yes"
+                                                : "No"),
+                                        internalDetails(
+                                            "Road Crossing",
+                                            (connectionList[index]
+                                                        .roadCrossing ==
+                                                    "1"
+                                                ? "Yes"
+                                                : "No")),
+                                        internalDetails(
+                                            "Mdpe Pipe",
                                             connectionList[index]
-                                                    .consumerMobile ??
-                                                "--",
-                                            style: greenStyle()
-                                                .copyWith(fontSize: 13)),
-                                        Text(
-                                          connectionList[index].createdAt ??
-                                              "-",
-                                          style: blackStyle().copyWith(
-                                            fontSize: 12,
-                                          ),
-                                        )
+                                                    .mdpePipeLength +
+                                                " mtrs")
                                       ],
                                     ),
-                                    leading: Card(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(25)),
-                                        elevation: 10,
-                                        child: CircleAvatar(
-                                            radius: 25,
-                                            backgroundColor: Colors.white,
-                                            backgroundImage: FileImage(File(
-                                                connectionList[index]
-                                                    .consumerPhoto)),
-                                            child: null)),
-                                    trailing: connectionList[index]
-                                                .uploadStatus ==
-                                            "No"
-                                        ? Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                      Icons.delete_outline),
-                                                  onPressed: () async {
-                                                    print(
-                                                        "i clicked delete button => " +
-                                                            connectionList[
-                                                                    index]
-                                                                .id
-                                                                .toString());
-                                                    dbRef.deleteConnection(
-                                                        connectionList[index]
-                                                            .id);
-                                                    connectionList = null;
-                                                    connectionList = await dbRef
-                                                        .getConnections();
-                                                    connectionCount =
-                                                        connectionList.length;
-                                                    setState(() {});
-                                                  },
-                                                )
-                                              ])
-                                        : null,
-                                    children: [
-                                      internalDetails("Contractor",
-                                          connectionList[index].contractor),
-                                      internalDetails(
-                                          "Zone", connectionList[index].zone),
-                                      internalDetails("Saddle",
-                                          connectionList[index].saddle),
-                                      internalDetails(
-                                          "Ferrule",
-                                          (connectionList[index].ferrule == "1")
-                                              ? "Yes"
-                                              : "No"),
-                                      internalDetails(
-                                          "Road Crossing",
-                                          (connectionList[index].roadCrossing ==
-                                                  "1"
-                                              ? "Yes"
-                                              : "No")),
-                                      internalDetails(
-                                          "Mdpe Pipe",
-                                          connectionList[index].mdpePipeLength +
-                                              " mtrs")
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : Expanded(
-                            child: Column(
+                                  );
+                                },
+                              ),
+                            )
+                          : Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "No Entries yet !!",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20),
+                                      )),
+                                ],
+                              ),
+                            )
+                      : Center(
+                          child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Container(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "No Entries yet !!",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20),
-                                    )),
-                              ],
-                            ),
-                          )
-                    : Center(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                            SpinKitRing(
-                              lineWidth: 3,
-                              color: Colors.green[900],
-                              size: 40.0,
-                              duration: Duration(milliseconds: 1000),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              "Loading...",
-                              // style: regularTxtStyle,
-                            )
-                          ])),
-              ],
-            ),
-          )),
+                              SpinKitRing(
+                                lineWidth: 3,
+                                color: Colors.green[900],
+                                size: 40.0,
+                                duration: Duration(milliseconds: 1000),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Loading...",
+                                // style: regularTxtStyle,
+                              )
+                            ])),
+                ],
+              ),
+            )),
+          ),
         ),
       ),
     );
@@ -475,8 +491,8 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     );
   }
 
-  void submitDetails(int index) async {
-    String url = FlavorConfig.instance.url() + "/Consumer/addConnection";
+  void submitDetails() async {
+    String url = FlavorConfig.instance.url() + "/Consumer/addMultiConnection";
 
     // Excel excel = Excel.createExcel();
     // Sheet sheetObject = excel["Excel 1"];
@@ -491,80 +507,116 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     //     ..createSync(recursive: true)
     //     ..writeAsBytesSync(onValue);
     // });
-    FormData formData = FormData.fromMap({
-      "name": consumerNames[index],
-      "createdBy": SessionData().data.id,
-      "address": addressList[index],
-      "contractorId": int.parse(contractorNames[index].split(",").last),
-      "zoneId": int.parse(zonesList[index].split(",").last),
-      "saddleId": int.parse(saddlesList[index].split(",").last),
-      "isFerrule": ferruleList[index] == "Yes" ? 1 : 0,
-      "isRoadCrossing": roadCrossingList[index] == "Yes" ? 1 : 0,
-      "pipeSize": mdpePipeList[index],
-      "lat": consumerlat[index],
-      "lang": consumerlang[index],
-      "branchId": SessionData().data.branchId,
-      "media": await MultipartFile.fromFile(consumerPhotos[index],
-          filename: File(consumerPhotos[index]).path.split("/").last)
-    });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var connectlist = await dbRef.getConnectionsByStatus("No");
+
+    List<Map<String, dynamic>> connections = List<Map<String, dynamic>>();
+
+    for (var connection in connectlist) {
+      final Map<String, dynamic> data = {
+        "name": connection.consumerName,
+        "createdBy": SessionData().data.id,
+        "address": connection.consumerAddress,
+        "contractorId": connection.contractorId,
+        "zoneId": connection.zoneId,
+        "saddleId": connection.saddleId,
+        "isFerrule": connection.ferrule == "Yes" ? 1 : 0,
+        "isRoadCrossing": connection.roadCrossing == "Yes" ? 1 : 0,
+        "pipeSize": connection.mdpePipeLength,
+        "lat": connection.latitude,
+        "lang": connection.longitude,
+        "branchId": SessionData().data.branchId,
+        "media": await MultipartFile.fromFile(connection.consumerPhoto,
+            filename: File(connection.consumerPhoto).path.split("/").last)
+      };
+      connections.add(data);
+    }
+
+    print("this is connection list => " + connections.toString());
+
+    FormData formData = FormData.fromMap({"data": connections});
 
     print(formData.fields);
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (connections.length > 0) {
+      setState(() {
+        _isLoading = true;
+      });
 
-    print("this is add conection api => $url");
-    try {
-      await getDio("formdata").post(url, data: formData).then((response) {
-        print(response.statusCode);
-        print(response.data);
-        print("inside code => " + response.data["code"].toString());
-        print("inside mesg => " + response.data["message"]);
-        if (response.statusCode == 200) {
+      print("this is add conection api => $url");
+      try {
+        await getDio("formdata").post(url, data: formData).then((response) {
+          print(response.statusCode);
+          print(response.data);
+          print("inside code => " + response.data["code"].toString());
+          print("inside mesg => " + response.data["message"]);
+          if (response.statusCode == 200) {
+            setState(() {
+              _isLoading = false;
+            });
+            if (response.data["code"] == 200) {
+              print(response.data["message"]);
+              dbRef.updateConnection();
+              connectionList = null;
+              getDbList();
+              showDialogOnError(
+                  this.context, "Successful", response.data["message"], "Ok",
+                  () {
+                Navigator.pop(this.context);
+              });
+            } else if (response.statusCode == 403) {
+              print(response.data);
+              showInFlushBar(
+                  context, response.data[0]["message"], _scaffoldKey);
+              SessionData().settoken(response.data[0]["new-token"]);
+              print(SessionData().data.token);
+              // showDialogOnError(this.context, "Session Timeout",
+              //     "Your session has expired", "Retry", isEmpty);
+            }
+          } else {
+            setState(() {
+              _isLoading = false;
+            });
+            print(response.statusMessage);
+          }
+        });
+      } on DioError catch (e) {
+        print("this is status code submit => " +
+            e.response.statusCode.toString());
+        print("this is status code submit => " + e.response.statusMessage);
+        print("this is data error => " + e.response.data.toString());
+        if (e.response.statusCode == 403) {
           setState(() {
             _isLoading = false;
           });
-          if (response.data["code"] == 200) {
-            print(response.data["message"]);
+          print("this is error => " + e.response.data[0]["message"]);
+          SessionData().settoken(e.response.data[0]["new-token"]);
+          prefs.setString("token", e.response.data[0]["new-token"]);
+          showDialogOnError(this.context, "Session Timeout",
+              "Your session has expired, please retry !", "Retry", () {
+            Navigator.pop(this.context);
+            submitDetails();
 
-            showDialogOnError(
-                this.context, "Successful", response.data["message"], "Ok", () {
-              Navigator.pop(this.context);
-            });
-          } else if (response.statusCode == 403) {
-            print(response.data);
-            showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
-            SessionData().settoken(response.data[0]["new-token"]);
-            print(SessionData().data.token);
-            // showDialogOnError(this.context, "Session Timeout",
-            //     "Your session has expired", "Retry", isEmpty);
-          }
+            // Navigator.pushReplacement(this.context,
+            //     MaterialPageRoute(builder: (context) => LoginScreen()));
+          });
         } else {
-          print(response.statusMessage);
+          setState(() {
+            _isLoading = false;
+          });
+          showInFlushBar(
+              this.context, e.response.data[0]["message"], _scaffoldKey);
         }
-      });
-    } on DioError catch (e) {
-      print(
-          "this is status code submit => " + e.response.statusCode.toString());
-      print("this is status code submit => " + e.response.statusMessage);
-      print("this is data error => " + e.response.data.toString());
-      if (e.response.statusCode == 403) {
-        print("this is error => " + e.response.data[0]["message"]);
-        SessionData().settoken(e.response.data[0]["new-token"]);
-        prefs.setString("token", e.response.data[0]["new-token"]);
-        showDialogOnError(this.context, "Session Timeout",
-            "Your session has expired, please retry !", "Retry", () {
-          Navigator.pop(this.context);
-          submitDetails(index);
-
-          // Navigator.pushReplacement(this.context,
-          //     MaterialPageRoute(builder: (context) => LoginScreen()));
-        });
-      } else {
-        showInFlushBar(
-            this.context, e.response.data[0]["message"], _scaffoldKey);
       }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      showDialogOnError(
+          this.context, "Empty", "No offline data available to upload", "Ok",
+          () {
+        Navigator.pop(this.context);
+      });
     }
   }
 }

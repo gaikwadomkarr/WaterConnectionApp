@@ -936,6 +936,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
       "name": consumerName.text,
       "createdBy": SessionData().data.id,
       "address": consumerAddress.text,
+      "mobileno": consumerMobile.text.trim(),
       "contractorId": int.parse(selectedCOntractor),
       "zoneId": int.parse(selectedZone),
       "saddleId": int.parse(selectedSaddle),
@@ -1090,75 +1091,6 @@ class _AddConnectionPageState extends State<AddConnectionPage>
   }
 
   void offlineSave() async {
-    // final List<String> consumerNamesList =
-    //     prefs.getStringList("consumerNamesList") ?? [];
-    // final List<String> contractorList =
-    //     prefs.getStringList("contractorList") ?? [];
-    // final List<String> consumerPhotosList =
-    //     prefs.getStringList("consumerPhotosList") ?? [];
-    // final List<String> zonesList = prefs.getStringList("zonesList") ?? [];
-    // final List<String> addressList = prefs.getStringList("addressList") ?? [];
-    // final List<String> mobileNumbersList =
-    //     prefs.getStringList("addressList") ?? [];
-    // final List<String> saddlesList = prefs.getStringList("saddlesList") ?? [];
-    // final List<String> ferruleList = prefs.getStringList("ferruleList") ?? [];
-    // final List<String> roadCrossingList =
-    //     prefs.getStringList("roadCrossingList") ?? [];
-    // final List<String> mdpePipeList = prefs.getStringList("mdpePipeList") ?? [];
-    // final List<String> uploadStatusList =
-    //     prefs.getStringList("uploadStatusList") ?? [];
-    // final List<String> connectionDates =
-    //     prefs.getStringList("connectionDates") ?? [];
-    // final List<String> consumerlat =
-    //     prefs.getStringList("connectionDates") ?? [];
-    // final List<String> consumerlang =
-    //     prefs.getStringList("connectionDates") ?? [];
-
-    // consumerNamesList.add(consumerName.text);
-    // getContractors.data.forEach((element) {
-    //   if (element.id == int.parse(selectedCOntractor)) {
-    //     contractorList.add(element.name + ",${element.id}");
-    //     return;
-    //   }
-    // });
-    // getZones.data.forEach((element) {
-    //   if (element.id == int.parse(selectedZone)) {
-    //     zonesList.add(element.zoneName + ",${element.id}");
-    //     return;
-    //   }
-    // });
-    // getSaddles.data.forEach((element) {
-    //   if (element.id == int.parse(selectedSaddle)) {
-    //     saddlesList.add(element.saddleName + ",${element.id}");
-    //     return;
-    //   }
-    // });
-    // consumerPhotosList.add(imagePath.path);
-    // addressList.add(consumerAddress.text);
-    // mobileNumbersList.add(consumerMobile.text);
-    // roadCrossingList.add(roadCrossingValue ? "1" : "0");
-    // ferruleList.add(ferruleValue ? "1" : "0");
-    // mdpePipeList.add(mdpePipeLenth.text);
-    // uploadStatusList.add("No");
-    // connectionDates.add(DateFormat("dd/MM/yyyy").format(DateTime.now()));
-    // consumerlat.add(_currentPosition.latitude.toString());
-    // consumerlang.add(_currentPosition.longitude.toString());
-
-    // prefs.setStringList("consumerNamesList", consumerNamesList);
-    // prefs.setStringList("contractorList", contractorList);
-    // prefs.setStringList("consumerPhotosList", consumerPhotosList);
-    // prefs.setStringList("consumermobileList", mobileNumbersList);
-    // prefs.setStringList("zonesList", zonesList);
-    // prefs.setStringList("addressList", addressList);
-    // prefs.setStringList("saddlesList", saddlesList);
-    // prefs.setStringList("ferruleList", ferruleList);
-    // prefs.setStringList("roadCrossingList", roadCrossingList);
-    // prefs.setStringList("mdpePipeList", mdpePipeList);
-    // prefs.setStringList("uploadStatusList", uploadStatusList);
-    // prefs.setStringList("connectionDates", connectionDates);
-    // prefs.setStringList("consumerlat", consumerlat);
-    // prefs.setStringList("consumerlang", consumerlang);
-
     dbRef.init();
     var contractor;
     var saddleName;
@@ -1214,19 +1146,19 @@ class _AddConnectionPageState extends State<AddConnectionPage>
     print(connectionList[0].consumerMobile);
     print(connectionList[0].consumerPhoto);
     // print(DateTime.parse(connectionList[0].createdAt));
-    // setState(() {
-    //   consumerName.text = "";
-    //   consumerAddress.text = "";
-    //   consumerMobile.text = "";
-    //   mdpePipeLenth.text = "";
-    //   selectedCOntractor = null;
-    //   selectedSaddle = null;
-    //   selectedZone = null;
-    //   ferruleValue = null;
-    //   roadCrossingValue = null;
-    //   imagePath = null;
-    //   fileName = null;
-    // });
+    setState(() {
+      consumerName.text = "";
+      consumerAddress.text = "";
+      consumerMobile.text = "";
+      mdpePipeLenth.text = "";
+      selectedCOntractor = null;
+      selectedSaddle = null;
+      selectedZone = null;
+      ferruleValue = null;
+      roadCrossingValue = null;
+      imagePath = null;
+      fileName = null;
+    });
   }
 
   @override
