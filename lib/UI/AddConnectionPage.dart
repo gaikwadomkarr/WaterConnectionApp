@@ -80,10 +80,10 @@ class _AddConnectionPageState extends State<AddConnectionPage>
     getContractorsApi();
   }
 
-  void showDialogOnError(BuildContext context, String title, String message,
-      String btnText, Function function) {
+  void showDialogOnError(
+      String title, String message, String btnText, Function function) {
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         // return object of type Dialog
@@ -113,7 +113,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
     var image1 =
-        await _picker.getImage(source: ImageSource.camera, imageQuality: 1);
+        await _picker.getImage(source: ImageSource.camera, imageQuality: 20);
     setState(() {
       imagePath = File(image1.path);
       fileName = imagePath.path.split('/').last;
@@ -127,28 +127,31 @@ class _AddConnectionPageState extends State<AddConnectionPage>
     tempContractors = [];
     tempSaddles = [];
     tempZones = [];
-    getContractors =
-        GetContractors.fromJson(json.decode(prefs.getString("contractors")));
-    getSaddles = GetSaddles.fromJson(json.decode(prefs.getString("saddles")));
-    getZones = GetZones.fromJson(json.decode(prefs.getString("zones")));
+    if (prefs.getString("contractors") == null) {
+      getContractorsApi();
+    } else {
+      getContractors =
+          GetContractors.fromJson(json.decode(prefs.getString("contractors")));
+      getSaddles = GetSaddles.fromJson(json.decode(prefs.getString("saddles")));
+      getZones = GetZones.fromJson(json.decode(prefs.getString("zones")));
+      getContractors.data.forEach((e) {
+        tempContractors
+            .add(DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
+        setState(() {});
+      });
 
-    getContractors.data.forEach((e) {
-      tempContractors
-          .add(DropdownMenuItem(value: e.id.toString(), child: Text(e.name)));
-      setState(() {});
-    });
+      getSaddles.data.forEach((e) {
+        tempSaddles.add(DropdownMenuItem(
+            value: e.id.toString(), child: Text(e.saddleName)));
+        setState(() {});
+      });
 
-    getSaddles.data.forEach((e) {
-      tempSaddles.add(
-          DropdownMenuItem(value: e.id.toString(), child: Text(e.saddleName)));
-      setState(() {});
-    });
-
-    getZones.data.forEach((e) {
-      tempZones.add(
-          DropdownMenuItem(value: e.id.toString(), child: Text(e.zoneName)));
-      setState(() {});
-    });
+      getZones.data.forEach((e) {
+        tempZones.add(
+            DropdownMenuItem(value: e.id.toString(), child: Text(e.zoneName)));
+        setState(() {});
+      });
+    }
   }
 
   @override
@@ -200,204 +203,229 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             body: RefreshIndicator(
               onRefresh: retryFunction,
               child: Center(
-                child: Form(
-                  key: _formKeyConnection,
-                  child: Container(
-                    height: MediaQuery.of(context).size.height,
-                    margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-                    child: SingleChildScrollView(
-                      child:
-                          Column(crossAxisAlignment: CrossAxisAlignment.start,
-                              // shrinkWrap: true,
-                              children: [
-                            buildDropdownButtonFormField(
-                                "Contractor",
-                                selectedCOntractor,
-                                tempContractors,
-                                _isContractorLoading),
-                            buildTextFormField(
-                                "Consumer Name",
-                                null,
-                                consumerName,
-                                false,
-                                TextInputType.name,
-                                null,
-                                formAutoValidate),
-                            // Container(
-                            //   child: Column(
-                            //     crossAxisAlignment: CrossAxisAlignment.start,
-                            //     children: [
-                            //       SizedBox(height: 15),
-                            //       Text(
-                            //         "Consumer Name" + " *",
-                            //         style: TextStyle(
-                            //             color: Colors.black38,
-                            //             fontWeight: FontWeight.w500),
-                            //       ),
-                            //       Container(
-                            //         // height: 40,
-                            //         child: TextFormField(
-                            //             minLines: false ? null : 1,
-                            //             maxLines: false ? null : 1,
-                            //             maxLength: null,
-                            //             validator: (text) {
-                            //               // if (controller == consumerMobile) {
-                            //               //   if (text.isEmpty || text.length < 10 || text.length > 10) {
-                            //               //     return "Mobile Number should be 10 digits";
-                            //               //   }
-                            //               // } else {
-                            //               if (text.isEmpty) {
-                            //                 return "Field should not be empty";
-                            //               }
-                            //               // }
-                            //               return null;
-                            //             },
-                            //             enableSuggestions: true,
-                            //             autocorrect: false,
-                            //             keyboardType: TextInputType.name,
-                            //             controller: consumerName,
-                            //             decoration: InputDecoration(
-                            //                 enabledBorder: UnderlineInputBorder(
-                            //                     borderSide: const BorderSide(
-                            //                         color: Colors.black26)),
-                            //                 labelStyle:
-                            //                     TextStyle(color: Colors.black54))),
-                            //       ),
-                            //     ],
-                            //   ),
-                            // ),
-                            buildDropdownButtonFormField("Zone", selectedZone,
-                                tempZones, _isZoneLoading),
-                            buildTextFormField(
-                                "Address",
-                                null,
-                                consumerAddress,
-                                true,
-                                TextInputType.streetAddress,
-                                null,
-                                formAutoValidate),
-                            buildTextFormField(
-                                "Mobile No.",
-                                null,
-                                consumerMobile,
-                                false,
-                                TextInputType.number,
-                                10,
-                                formAutoValidate),
-                            buildDropdownButtonFormField("Saddle",
-                                selectedSaddle, tempSaddles, _isSaddleLoading),
-                            buildFerruleRadioButton("Ferrule"),
-                            buildRoadCrossingRadioButton("Road Crossing"),
-                            Container(
-                              alignment: Alignment.centerLeft,
-                              width: MediaQuery.of(context).size.width / 2.8,
-                              child: buildTextFormField(
-                                  "MDPE Pipe Length",
-                                  "mtrs",
-                                  mdpePipeLenth,
-                                  false,
-                                  TextInputType.number,
-                                  null,
-                                  formAutoValidate),
-                            ),
-                            SizedBox(
-                              height: 20,
-                            ),
-                            Container(
-                              // alignment: Alignment.center,
-                              width: fileName != null
-                                  ? MediaQuery.of(context).size.width / 3
-                                  : MediaQuery.of(context).size.width / 2,
-                              child: OutlineButton(
-                                child: fileName != null
-                                    ? Image.file(
-                                        imagePath,
-                                        height: 150,
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.photo_camera),
-                                          SizedBox(width: 10),
-                                          Text(
-                                            "Add Photo",
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.black,
-                                                letterSpacing: 2),
-                                          ),
-                                        ],
-                                      ),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                                onPressed: () {
-                                  getImageFromCamera(context);
-                                },
-                                // icon: fileName != null
-                                //     ? null
-                                //     : Icon(Icons.photo_camera)
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            !_isOfflineSave
-                                ? Container(
+                child: Column(
+                  children: [
+                    Container(
+                      alignment: Alignment.center,
+                      width: MediaQuery.of(context).size.width,
+                      height: 25,
+                      color: _isOfflineSave ? Colors.red : Colors.green,
+                      child: Text(
+                          _isOfflineSave ? "Offline Mode" : "Online Mode",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                    Expanded(
+                      child: Form(
+                        key: _formKeyConnection,
+                        child: Container(
+                          height: MediaQuery.of(context).size.height,
+                          margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
+                          child: SingleChildScrollView(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                // shrinkWrap: true,
+                                children: [
+                                  buildDropdownButtonFormField(
+                                      "Contractor",
+                                      selectedCOntractor,
+                                      tempContractors,
+                                      _isContractorLoading),
+                                  buildTextFormField(
+                                      "Consumer Name",
+                                      null,
+                                      consumerName,
+                                      false,
+                                      TextInputType.name,
+                                      null,
+                                      formAutoValidate),
+                                  // Container(
+                                  //   child: Column(
+                                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                                  //     children: [
+                                  //       SizedBox(height: 15),
+                                  //       Text(
+                                  //         "Consumer Name" + " *",
+                                  //         style: TextStyle(
+                                  //             color: Colors.black38,
+                                  //             fontWeight: FontWeight.w500),
+                                  //       ),
+                                  //       Container(
+                                  //         // height: 40,
+                                  //         child: TextFormField(
+                                  //             minLines: false ? null : 1,
+                                  //             maxLines: false ? null : 1,
+                                  //             maxLength: null,
+                                  //             validator: (text) {
+                                  //               // if (controller == consumerMobile) {
+                                  //               //   if (text.isEmpty || text.length < 10 || text.length > 10) {
+                                  //               //     return "Mobile Number should be 10 digits";
+                                  //               //   }
+                                  //               // } else {
+                                  //               if (text.isEmpty) {
+                                  //                 return "Field should not be empty";
+                                  //               }
+                                  //               // }
+                                  //               return null;
+                                  //             },
+                                  //             enableSuggestions: true,
+                                  //             autocorrect: false,
+                                  //             keyboardType: TextInputType.name,
+                                  //             controller: consumerName,
+                                  //             decoration: InputDecoration(
+                                  //                 enabledBorder: UnderlineInputBorder(
+                                  //                     borderSide: const BorderSide(
+                                  //                         color: Colors.black26)),
+                                  //                 labelStyle:
+                                  //                     TextStyle(color: Colors.black54))),
+                                  //       ),
+                                  //     ],
+                                  //   ),
+                                  // ),
+                                  buildDropdownButtonFormField("Zone",
+                                      selectedZone, tempZones, _isZoneLoading),
+                                  buildTextFormField(
+                                      "Address",
+                                      null,
+                                      consumerAddress,
+                                      true,
+                                      TextInputType.streetAddress,
+                                      null,
+                                      formAutoValidate),
+                                  buildTextFormField(
+                                      "Mobile No.",
+                                      null,
+                                      consumerMobile,
+                                      false,
+                                      TextInputType.number,
+                                      null,
+                                      formAutoValidate),
+                                  buildDropdownButtonFormField(
+                                      "Saddle",
+                                      selectedSaddle,
+                                      tempSaddles,
+                                      _isSaddleLoading),
+                                  buildFerruleRadioButton("Ferrule"),
+                                  buildRoadCrossingRadioButton("Road Crossing"),
+                                  Container(
+                                    alignment: Alignment.centerLeft,
                                     width:
-                                        MediaQuery.of(context).size.width / 1,
-                                    child: RaisedButton(
-                                      padding:
-                                          EdgeInsets.fromLTRB(40, 10, 40, 10),
+                                        MediaQuery.of(context).size.width / 2.8,
+                                    child: buildTextFormField(
+                                        "MDPE Pipe Length",
+                                        "mtrs",
+                                        mdpePipeLenth,
+                                        false,
+                                        TextInputType.number,
+                                        null,
+                                        formAutoValidate),
+                                  ),
+                                  SizedBox(
+                                    height: 20,
+                                  ),
+                                  Container(
+                                    // alignment: Alignment.center,
+                                    width: fileName != null
+                                        ? MediaQuery.of(context).size.width / 3
+                                        : MediaQuery.of(context).size.width / 2,
+                                    child: OutlineButton(
+                                      child: fileName != null
+                                          ? Image.file(
+                                              imagePath,
+                                              height: 150,
+                                            )
+                                          : Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.photo_camera),
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  "Add Photo",
+                                                  style: TextStyle(
+                                                      fontSize: 15,
+                                                      color: Colors.black,
+                                                      letterSpacing: 2),
+                                                ),
+                                              ],
+                                            ),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(10)),
-                                      onPressed: btnEnabled
-                                          ? () {
-                                              isEmpty();
-                                            }
-                                          : null,
-                                      color: btnEnabled
-                                          ? Colors.black
-                                          : Colors.black54,
-                                      child: Text(
-                                        "Save",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                            letterSpacing: 2),
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 1,
-                                    child: RaisedButton(
-                                      padding:
-                                          EdgeInsets.fromLTRB(40, 10, 40, 10),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
-                                      onPressed: btnEnabled
-                                          ? () {
-                                              isEmpty();
-                                            }
-                                          : null,
-                                      color: btnEnabled
-                                          ? Colors.black
-                                          : Colors.black54,
-                                      child: Text(
-                                        "Offline Save",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                            letterSpacing: 2),
-                                      ),
+                                      onPressed: () {
+                                        getImageFromCamera(context);
+                                      },
+                                      // icon: fileName != null
+                                      //     ? null
+                                      //     : Icon(Icons.photo_camera)
                                     ),
                                   ),
-                          ]),
+                                  SizedBox(height: 20),
+                                  !_isOfflineSave
+                                      ? Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              1,
+                                          child: RaisedButton(
+                                            padding: EdgeInsets.fromLTRB(
+                                                40, 10, 40, 10),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10)),
+                                            onPressed: btnEnabled
+                                                ? () {
+                                                    isEmpty();
+                                                  }
+                                                : null,
+                                            color: btnEnabled
+                                                ? Colors.black
+                                                : Colors.black54,
+                                            child: Text(
+                                              "Save",
+                                              style: TextStyle(
+                                                  fontSize: 15,
+                                                  color: Colors.white,
+                                                  letterSpacing: 2),
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              1,
+                                          child: RaisedButton(
+                                            padding: EdgeInsets.fromLTRB(
+                                                40, 10, 40, 10),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10)),
+                                            onPressed: btnEnabled
+                                                ? () {
+                                                    isEmpty();
+                                                  }
+                                                : null,
+                                            color: btnEnabled
+                                                ? Colors.black
+                                                : Colors.black54,
+                                            child: Text(
+                                              "Offline Save",
+                                              style: TextStyle(
+                                                  fontSize: 15,
+                                                  color: Colors.white,
+                                                  letterSpacing: 2),
+                                            ),
+                                          ),
+                                        ),
+                                ]),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -670,15 +698,15 @@ class _AddConnectionPageState extends State<AddConnectionPage>
                 maxLength: maxLength,
                 textCapitalization: TextCapitalization.words,
                 validator: (text) {
-                  if (controller == consumerMobile) {
-                    if (text.isEmpty || text.length < 10 || text.length > 10) {
-                      return "Mobile Number should be 10 digits";
-                    }
-                  } else {
-                    if (text.isEmpty) {
-                      return "Field should not be empty";
-                    }
+                  // if (controller == consumerMobile) {
+                  //   if (text.isEmpty || text.length < 10 || text.length > 10) {
+                  //     return "Mobile Number should be 10 digits";
+                  //   }
+                  // } else {
+                  if (text.isEmpty) {
+                    return "Field should not be empty";
                   }
+                  // }
                   return null;
                 },
                 enableSuggestions: true,
@@ -757,7 +785,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
         });
         SessionData().settoken(e.response.data[0]["new-token"]);
         prefs.setString("token", e.response.data[0]["new-token"]);
-        showDialogOnError(this.context, "Session Timeout",
+        showDialogOnError("Session Timeout",
             "Your session has expired. Please retry !", "Retry", () {
           retryFunction();
           Navigator.pop(this.context);
@@ -807,7 +835,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             });
             print("entered contractor retry");
             SessionData().settoken(response.data[0]["new-token"]);
-            showDialogOnError(this.context, "Session Timeout",
+            showDialogOnError("Session Timeout",
                 "Your session has expired. Please retry !", "Retry", () {
               retryFunction();
               Navigator.pop(this.context);
@@ -832,7 +860,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
       if (!_isErrorShown) {
         SessionData().settoken(e.response.data[0]["new-token"]);
         prefs.setString("token", e.response.data[0]["new-token"]);
-        showDialogOnError(this.context, "Session Timeout",
+        showDialogOnError("Session Timeout",
             "Your session has expired. Please retry !", "Retry", () {
           retryFunction();
           Navigator.pop(this.context);
@@ -881,7 +909,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
               _isErrorShown = true;
             });
             SessionData().settoken(response.data[0]["new-token"]);
-            showDialogOnError(this.context, "Session Timeout",
+            showDialogOnError("Session Timeout",
                 "Your session has expired. Please retry !", "Retry", () {
               retryFunction();
               Navigator.pop(this.context);
@@ -907,8 +935,8 @@ class _AddConnectionPageState extends State<AddConnectionPage>
         print("entered contractor retry");
         SessionData().settoken(e.response.data[0]["new-token"]);
         prefs.setString("token", e.response.data[0]["new-token"]);
-        showDialogOnError(this.context, "Session Timeout",
-            "Your session has expired", "Retry", () {
+        showDialogOnError(
+            "Session Timeout", "Your session has expired", "Retry", () {
           retryFunction();
           Navigator.pop(this.context);
         });
@@ -989,7 +1017,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
                 zoneName = element.zoneName;
               }
             });
-            final createDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+            final createDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
             // var currentTimeInSecs = Utils.currentTimeInSeconds();
             print("this is created at date  =>" + createDate);
 
@@ -1033,8 +1061,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             });
             print(response.data["message"]);
 
-            showDialogOnError(
-                this.context, "Successful", response.data["message"], "Ok", () {
+            showDialogOnError("Successful", response.data["message"], "Ok", () {
               Navigator.pop(this.context);
             });
           } else if (response.statusCode == 403) {
@@ -1046,8 +1073,8 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             showInFlushBar(context, response.data[0]["message"], _scaffoldKey);
             SessionData().settoken(response.data[0]["new-token"]);
             print(SessionData().data.token);
-            showDialogOnError(this.context, "Session Timeout",
-                "Your session has expired", "Retry", isEmpty);
+            showDialogOnError("Session Timeout", "Your session has expired",
+                "Retry", isEmpty);
           }
         } else {
           setState(() {
@@ -1070,7 +1097,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
         print("this is error => " + e.response.data[0]["message"]);
         SessionData().settoken(e.response.data[0]["new-token"]);
         prefs.setString("token", e.response.data[0]["new-token"]);
-        showDialogOnError(this.context, "Session Timeout",
+        showDialogOnError("Session Timeout",
             "Your session has expired, please retry !", "Retry", () {
           Navigator.pop(this.context);
           submitDetails();
@@ -1113,7 +1140,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
       }
     });
 
-    final createDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+    final createDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
     // var currentTimeInSecs = Utils.currentTimeInSeconds();
     print("this is created at date  =>" + createDate);
 

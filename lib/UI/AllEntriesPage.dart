@@ -1,11 +1,13 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:core';
 import 'package:dio/dio.dart';
+import 'package:excel/excel.dart';
+import 'package:path/path.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
 import 'package:waterconnection/Helpers/NetworkHelprs.dart';
@@ -49,6 +51,12 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   void initState() {
     super.initState();
     getDbList();
+  }
+
+  Future<String> get _localPath async {
+    final directory = await getExternalStorageDirectory();
+
+    return directory.path;
   }
 
   void getDbList() async {
@@ -140,6 +148,181 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     setState(() {});
   }
 
+  Future<String> _exportAll() async {
+    setState(() {
+      _isLoading = true;
+    });
+    // var excludes = new List<dynamic>();
+    // var prettify = new Map<dynamic, dynamic>();
+    // var finalpath = "";
+
+    // // Exclude column(s) from being exported
+    // // excludes.add("order_id");
+
+    // // Prettifies columns name
+    // prettify["consumerName"] = "Consumer Name";
+    // prettify["consumerMobile"] = "Consumer Mobile";
+    // prettify["consumerAddress"] = "Consumer Address";
+    // prettify["latitude"] = "Latitude";
+    // prettify["longitude"] = "Longitude";
+    // prettify["created_at"] = "Created At";
+    // prettify["contractor"] = "Contractor";
+    // prettify["saddle"] = "Saddle";
+    // prettify["zone"] = "Zone";
+    // prettify["mdpePipeLength"] = "Pipe Length";
+    // prettify["ferrule"] = "Ferrule";
+    // prettify["roadCrossing"] = "roadCrossing";
+
+    // // String dbPath = join(await _localPath, 'WaterConnection.db');
+    // Directory directory = await getExternalStorageDirectory();
+    // // var path = directory.path;
+    // String dbPath = join(directory.path, "WaterConnection.db");
+    // try {
+    //   finalpath = await Sqlitetoexcel.exportSingleTable(
+    //       dbPath,
+    //       "",
+    //       directory.path,
+    //       "ExportSingleTable.xls",
+    //       "connections",
+    //       excludes,
+    //       prettify);
+    // } on PlatformException catch (e) {
+    //   print(e.message.toString());
+    // }
+
+    // print("this is final path for excel => " + finalpath);
+    Excel excel = Excel.createExcel();
+    Sheet sheetObject =
+        excel["WMC-${DateFormat("dd/MM/yyyy").format(DateTime.now())}"];
+    var rowCount = 1;
+    CellStyle headcellStyle = CellStyle(
+      bold: true,
+      horizontalAlign: HorizontalAlign.Center,
+      italic: false,
+      textWrapping: TextWrapping.WrapText,
+      fontFamily: getFontFamily(FontFamily.Helvetica_Neue),
+    );
+    CellStyle valuecellStyle = CellStyle(
+      bold: false,
+      italic: false,
+      fontSize: 8,
+      horizontalAlign: HorizontalAlign.Center,
+      fontFamily: getFontFamily(FontFamily.Comic_Sans_MS),
+    );
+    connectionList.forEach((connection) {
+      var cellA = sheetObject.cell(CellIndex.indexByString("A$rowCount"));
+      var cellB = sheetObject.cell(CellIndex.indexByString("B$rowCount"));
+      var cellC = sheetObject.cell(CellIndex.indexByString("C$rowCount"));
+      var cellD = sheetObject.cell(CellIndex.indexByString("D$rowCount"));
+      var cellE = sheetObject.cell(CellIndex.indexByString("E$rowCount"));
+      var cellF = sheetObject.cell(CellIndex.indexByString("F$rowCount"));
+      var cellG = sheetObject.cell(CellIndex.indexByString("G$rowCount"));
+      var cellH = sheetObject.cell(CellIndex.indexByString("H$rowCount"));
+      var cellI = sheetObject.cell(CellIndex.indexByString("I$rowCount"));
+      var cellJ = sheetObject.cell(CellIndex.indexByString("J$rowCount"));
+      var cellK = sheetObject.cell(CellIndex.indexByString("K$rowCount"));
+      var cellL = sheetObject.cell(CellIndex.indexByString("L$rowCount"));
+      if (rowCount == 1) {
+        cellA.value = "Consumer Name";
+        cellA.cellStyle = headcellStyle;
+
+        cellB.value = "Consumer Mobile";
+        cellB.cellStyle = headcellStyle;
+
+        cellC.value = "Consumer Address";
+        cellC.cellStyle = headcellStyle;
+
+        cellD.value = "Latitude";
+        cellD.cellStyle = headcellStyle;
+
+        cellE.value = "Longitude";
+        cellE.cellStyle = headcellStyle;
+
+        cellF.value = "Created At";
+        cellF.cellStyle = headcellStyle;
+
+        cellG.value = "Contractor";
+        cellG.cellStyle = headcellStyle;
+
+        cellH.value = "Ferrule";
+        cellH.cellStyle = headcellStyle;
+
+        cellI.value = "Road Crossing";
+        cellI.cellStyle = headcellStyle;
+
+        cellJ.value = "Saddle";
+        cellJ.cellStyle = headcellStyle;
+
+        cellK.value = "Zone";
+        cellK.cellStyle = headcellStyle;
+
+        cellL.value = "Pipe Length";
+        cellL.cellStyle = headcellStyle;
+      } else {
+        cellA.value = connection.consumerName;
+        cellA.cellStyle = valuecellStyle;
+
+        cellB.value = connection.consumerMobile;
+        cellB.cellStyle = valuecellStyle;
+
+        cellC.value = connection.consumerAddress;
+        cellC.cellStyle = valuecellStyle;
+
+        cellD.value = connection.latitude;
+        cellD.cellStyle = valuecellStyle;
+
+        cellE.value = connection.longitude;
+        cellE.cellStyle = valuecellStyle;
+
+        cellF.value = connection.createdAt;
+        cellF.cellStyle = valuecellStyle;
+
+        cellG.value = connection.contractor;
+        cellG.cellStyle = valuecellStyle;
+
+        cellH.value = connection.ferrule == "1" ? "Yes" : "No";
+        cellH.cellStyle = valuecellStyle;
+
+        cellI.value = connection.roadCrossing == "1" ? "Yes" : "No";
+        cellI.cellStyle = valuecellStyle;
+
+        cellJ.value = connection.saddle;
+        cellJ.cellStyle = valuecellStyle;
+
+        cellK.value = connection.zone;
+        cellK.cellStyle = valuecellStyle;
+
+        cellL.value = connection.mdpePipeLength;
+        cellL.cellStyle = headcellStyle;
+      }
+      rowCount += 1;
+    });
+    // var cell = sheetObject.cell(CellIndex.indexByString("A1"));
+    // cell.value = "Omkar Gaikwad";
+    // print("CellType: " + cell.cellType.toString());
+    final filePath = await _localPath;
+    String outputFile = filePath +
+        "/WMC-${DateFormat("dd-MM-yyyy").format(DateTime.now())}.xlsx";
+    print(outputFile.toString());
+    excel.encode().then((onValue) {
+      File(join(outputFile))
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(onValue);
+    });
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    showDialogOnError("Excel Saved",
+        "Excel file created successfully at \n\n$outputFile", "Ok", () {
+      Navigator.pop(this.context);
+    });
+
+    print("this is final path for excel => " + outputFile);
+    return outputFile;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -153,12 +336,21 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                 title: Text("All Entries ($connectionCount)"),
                 actions: [
                   IconButton(
+                    icon: Icon(Icons.download_outlined),
+                    tooltip: "Export Data",
+                    onPressed: () {
+                      _exportAll();
+                    },
+                  ),
+                  IconButton(
                       icon: Icon(Icons.cloud_upload_outlined),
+                      tooltip: "Upload to server",
                       onPressed: () async {
                         submitDetails();
                       }),
                   IconButton(
                       icon: Icon(Icons.logout),
+                      tooltip: "Logout",
                       onPressed: () async {
                         prefs = await SharedPreferences.getInstance();
                         prefs.remove("loggedin");
@@ -228,6 +420,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                       onPressed: () {
                                         setState(() {
                                           showdateRange = false;
+                                          searchController.text = "";
                                           dateRange = null;
                                           getChangedList("");
                                         });
@@ -254,9 +447,13 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                               dateRange = picked;
                               connectionList = null;
                             });
-                            connectionList = await dbRef.getConnectionsByDate(
-                                DateFormat("dd-MM-yyyy").format(picked.start),
+                            print(DateFormat("dd-MM-yyyy")
+                                    .format(picked.start) +
+                                " " +
                                 DateFormat("dd-MM-yyyy").format(picked.end));
+                            connectionList = await dbRef.getConnectionsByDate(
+                                DateFormat("yyyy-MM-dd").format(picked.start),
+                                DateFormat("yyyy-MM-dd").format(picked.end));
                             setState(() {});
                           }
                           print(picked.start.toString() +
@@ -355,22 +552,35 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                                                     icon: Icon(
                                                         Icons.delete_outline),
                                                     onPressed: () async {
-                                                      print(
-                                                          "i clicked delete button => " +
-                                                              connectionList[
-                                                                      index]
-                                                                  .id
-                                                                  .toString());
-                                                      dbRef.deleteConnection(
-                                                          connectionList[index]
-                                                              .id);
-                                                      connectionList = null;
-                                                      connectionList =
-                                                          await dbRef
-                                                              .getConnections();
-                                                      connectionCount =
-                                                          connectionList.length;
-                                                      setState(() {});
+                                                      showConfirmDialog(
+                                                          "Confirm",
+                                                          "Are you sure you want to delete this record permanently ?",
+                                                          "Cancel",
+                                                          "Delete", () {
+                                                        Navigator.pop(
+                                                            this.context);
+                                                      }, () async {
+                                                        print(
+                                                            "i clicked delete button => " +
+                                                                connectionList[
+                                                                        index]
+                                                                    .id
+                                                                    .toString());
+                                                        dbRef.deleteConnection(
+                                                            connectionList[
+                                                                    index]
+                                                                .id);
+                                                        connectionList = null;
+                                                        connectionList =
+                                                            await dbRef
+                                                                .getConnections();
+                                                        connectionCount =
+                                                            connectionList
+                                                                .length;
+                                                        setState(() {});
+                                                        Navigator.pop(
+                                                            this.context);
+                                                      });
                                                     },
                                                   )
                                                 ])
@@ -470,10 +680,10 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     );
   }
 
-  void showDialogOnError(BuildContext context, String title, String message,
-      String btnText, Function function) {
+  void showDialogOnError(
+      String title, String message, String btnText, Function function) {
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         // return object of type Dialog
@@ -491,22 +701,46 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     );
   }
 
+  void showConfirmDialog(String title, String message, String btn1Text,
+      String btn2Text, Function function1, Function function2) {
+    showDialog(
+      context: this.context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            new OutlineButton(
+              borderSide: BorderSide(color: Colors.blue),
+              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              textColor: Colors.blue,
+              child: new Text(btn1Text),
+              onPressed: function1,
+            ),
+            new OutlineButton(
+              borderSide: BorderSide(color: Colors.red),
+              color: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              textColor: Colors.red,
+              child: new Text(btn2Text),
+              onPressed: function2,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void submitDetails() async {
     String url = FlavorConfig.instance.url() + "/Consumer/addMultiConnection";
 
-    // Excel excel = Excel.createExcel();
-    // Sheet sheetObject = excel["Excel 1"];
-    // var cell = sheetObject.cell(CellIndex.indexByString("A1"));
-    // cell.value = "Omkar Gaikwad";
-    // print("CellType: " + cell.cellType.toString());
-    // final filePath = await _localPath;
-    // String outputFile = filePath + "/r.xlsx";
-    // print(outputFile.toString());
-    // excel.encode().then((onValue) {
-    //   File(join(outputFile))
-    //     ..createSync(recursive: true)
-    //     ..writeAsBytesSync(onValue);
-    // });
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var connectlist = await dbRef.getConnectionsByStatus("No");
 
@@ -559,10 +793,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
               dbRef.updateConnection();
               connectionList = null;
               getDbList();
-              showDialogOnError(
-                  this.context, "Successful", response.data["message"], "Ok",
+              showDialogOnError("Successful", response.data["message"], "Ok",
                   () {
-                Navigator.pop(this.context);
+                Navigator.of(this.context).pop();
               });
             } else if (response.statusCode == 403) {
               print(response.data);
@@ -592,7 +825,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
           print("this is error => " + e.response.data[0]["message"]);
           SessionData().settoken(e.response.data[0]["new-token"]);
           prefs.setString("token", e.response.data[0]["new-token"]);
-          showDialogOnError(this.context, "Session Timeout",
+          showDialogOnError("Session Timeout",
               "Your session has expired, please retry !", "Retry", () {
             Navigator.pop(this.context);
             submitDetails();
@@ -612,8 +845,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
       setState(() {
         _isLoading = false;
       });
-      showDialogOnError(
-          this.context, "Empty", "No offline data available to upload", "Ok",
+      showDialogOnError("Empty", "No offline data available to upload", "Ok",
           () {
         Navigator.pop(this.context);
       });

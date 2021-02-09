@@ -181,6 +181,9 @@ class WaterConnectionDBHelper {
     // } else {
     connectionList = await client.rawQuery(
         "SELECT * from connections WHERE created_at BETWEEN '$startDate' AND '$endDate'");
+    // "SELECT * from connections WHERE DATE_FORMAT(created_at, '%dd-%MM-%yyyy') BETWEEN '$startDate' AND '$endDate'");
+    // "SELECT * from connections WHERE created_at in ('$startDate','$endDate')");
+
     // }
     return List.generate(connectionList.length, (i) {
       return ConnectionDb(
