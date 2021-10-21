@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:waterconnection/Models/ConnectionDB.dart';
+import 'package:waterconnection/Models/MeterReadingDB.dart';
 
 class WaterConnectionDBHelper {
   static final WaterConnectionDBHelper instance =
@@ -38,6 +39,21 @@ class WaterConnectionDBHelper {
   }
 
   void _onCreate(Database db, int version) {
+    db.execute('''
+      CREATE TABLE meterreadings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        consumerName TEXT,
+        consumerPhoto TEXT,
+        meterNumber INTEGER,
+        meterReading INTEGER,
+        consumerAddress TEXT,
+        latitude TEXT,
+        longitude TEXT,
+        created_at TEXT,
+        branchId INTEGER,
+        uploadStatus TEXT
+        )
+    ''');
     db.execute('''
       CREATE TABLE connections(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,6 +222,108 @@ class WaterConnectionDBHelper {
           contractorId: connectionList[i]['contractorId'],
           branchId: connectionList[i]['branchId'],
           createdBy: connectionList[i]['created_by'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  void saveMeterReading(MeterReadingDb meterReadingDb) async {
+    var client = await db;
+    client.insert('meterreadings', meterReadingDb.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    print("reading entry made to database");
+  }
+
+  void deleteMeterReading(int id) async {
+    var client = await db;
+    client.delete("meterreadings", where: "id = ?", whereArgs: [id]);
+    print("entry made to database");
+  }
+
+  void updateMeterReading() async {
+    var client = await db;
+    client.rawUpdate(
+        '''UPDATE meterreadings SET uploadStatus = "Yes" WHERE uploadStatus = "No"''');
+    print("entry made to database");
+  }
+
+  Future<List<MeterReadingDb>> getMeterReadingsList() async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList =
+        await client.query('meterreadings');
+    return List.generate(connectionList.length, (i) {
+      return MeterReadingDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          meterNumber: connectionList[i]['meterNumber'],
+          meterReading: connectionList[i]['meterReading'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          branchId: connectionList[i]['branchId'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<MeterReadingDb>> geMeterReadingsByName(name) async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList = await client.rawQuery(
+        "SELECT * from meterreadings WHERE consumerName like '%$name%'");
+    return List.generate(connectionList.length, (i) {
+      return MeterReadingDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          meterNumber: connectionList[i]['meterNumber'],
+          meterReading: connectionList[i]['meterReading'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          branchId: connectionList[i]['branchId'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<MeterReadingDb>> getMeterReadingsByStatus(status) async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList = await client
+        .rawQuery("SELECT * from meterreadings WHERE uploadStatus='$status'");
+    return List.generate(connectionList.length, (i) {
+      return MeterReadingDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          meterNumber: connectionList[i]['meterNumber'],
+          meterReading: connectionList[i]['meterReading'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          branchId: connectionList[i]['branchId'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<MeterReadingDb>> getMeterReadingsByDate(
+      startDate, endDate) async {
+    final client = await db;
+    List<Map<String, dynamic>> connectionList = List<Map<String, dynamic>>();
+    connectionList = await client.rawQuery(
+        "SELECT * from meterreadings WHERE created_at BETWEEN '$startDate' AND '$endDate'");
+    return List.generate(connectionList.length, (i) {
+      return MeterReadingDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          meterNumber: connectionList[i]['meterNumber'],
+          meterReading: connectionList[i]['meterReading'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          branchId: connectionList[i]['branchId'],
           uploadStatus: connectionList[i]["uploadStatus"]);
     });
   }

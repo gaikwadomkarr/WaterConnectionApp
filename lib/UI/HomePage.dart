@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:waterconnection/UI/AddConnectionPage.dart';
 import 'package:waterconnection/UI/AllEntriesPage.dart';
 import 'package:waterconnection/UI/AllEntriesScreen.dart';
+import 'package:waterconnection/UI/Entries.dart';
 import 'package:waterconnection/UI/LoginScreen.dart';
+import 'package:waterconnection/UI/WaterConnectionPage.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -12,7 +14,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Widget> screens = [AddConnectionPage(), AllEntriesPage()];
+  List<Widget> screens = [AddConnectionPage(), Entries(), WaterConnection()];
   int _selectedIndex = 0;
 
   void comfirmExitFromUser() {
@@ -74,6 +76,10 @@ class _HomePageState extends State<HomePage> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined),
                 label: 'Entries',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.water_damage_outlined),
+                label: 'Water Meter',
               )
             ],
 
