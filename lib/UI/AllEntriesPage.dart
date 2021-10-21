@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:core';
 import 'package:dio/dio.dart';
@@ -28,9 +30,11 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   bool showCrossMark = false;
   bool showdateRange = false;
   DateTimeRange dateRange;
+  int offlineCount = 0;
   TextEditingController searchController = new TextEditingController();
   final dbRef = WaterConnectionDBHelper();
   List<ConnectionDb> connectionList;
+  List<ConnectionDb> offlineconnectionList;
   List<String> consumerNames = List<String>();
   List<String> consumerPhotos = List<String>();
   List<String> contractorNames = List<String>();
@@ -51,6 +55,7 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   void initState() {
     super.initState();
     getDbList();
+    getOfflineDbList();
   }
 
   Future<String> get _localPath async {
@@ -62,6 +67,12 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   void getDbList() async {
     connectionList = await dbRef.getConnections();
     connectionCount = connectionList.length;
+    setState(() {});
+  }
+
+  void getOfflineDbList() async {
+    offlineconnectionList = await dbRef.getAllConnectionsByStatus("No");
+    offlineCount = offlineconnectionList.length;
     setState(() {});
   }
 
@@ -342,12 +353,27 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
                       _exportAll();
                     },
                   ),
-                  IconButton(
-                      icon: Icon(Icons.cloud_upload_outlined),
-                      tooltip: "Upload to server",
-                      onPressed: () async {
-                        submitDetails();
-                      }),
+                  Container(
+                    margin: EdgeInsets.only(top: 5),
+                    child: Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 10,
+                          backgroundColor: Colors.green[900],
+                          child: Text(offlineCount.toString(),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 10)),
+                        ),
+                        IconButton(
+                            icon: Icon(Icons.cloud_upload_outlined),
+                            tooltip: "Upload to server",
+                            onPressed: () async {
+                              submitDetails();
+                            }),
+                      ],
+                    ),
+                  ),
                   IconButton(
                       icon: Icon(Icons.logout),
                       tooltip: "Logout",
@@ -701,6 +727,31 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
     );
   }
 
+  void showNextBatchDialog(String title, String message, String btnText,
+      String btn2Text, Function function, Function function2) {
+    showDialog(
+      context: this.context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text(btnText),
+              onPressed: function,
+            ),
+            new FlatButton(
+              child: new Text(btn2Text),
+              onPressed: function2,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void showConfirmDialog(String title, String message, String btn1Text,
       String btn2Text, Function function1, Function function2) {
     showDialog(
@@ -739,12 +790,19 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
   }
 
   void submitDetails() async {
+    var uploadloop = 0;
     String url = FlavorConfig.instance.url() + "/Consumer/addMultiConnection";
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var connectlist = await dbRef.getConnectionsByStatus("No");
 
     List<Map<String, dynamic>> connections = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections1 = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections2 = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections3 = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections4 = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections5 = List<Map<String, dynamic>>();
+    List<Map<String, dynamic>> connections6 = List<Map<String, dynamic>>();
 
     for (var connection in connectlist) {
       final Map<String, dynamic> data = {
@@ -763,14 +821,33 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
         "media": await MultipartFile.fromFile(connection.consumerPhoto,
             filename: File(connection.consumerPhoto).path.split("/").last)
       };
-      connections.add(data);
-    }
 
-    print("this is connection list => " + connections.toString());
+      // if (connectlist.indexOf(connection) <= 49) {
+      connections.add(data);
+      // } else if (connectlist.indexOf(connection) <= 99) {
+      //   connections1.add(data);
+      // } else if (connectlist.indexOf(connection) <= 149) {
+      //   connections2.add(data);
+      // } else if (connectlist.indexOf(connection) <= 199) {
+      //   connections3.add(data);
+      // } else if (connectlist.indexOf(connection) <= 249) {
+      //   connections4.add(data);
+      // } else if (connectlist.indexOf(connection) <= 299) {
+      //   connections5.add(data);
+      // } else if (connectlist.indexOf(connection) <= 349) {
+      //   connections1.add(data);
+      // }
+    }
+    JsonEncoder encoder = new JsonEncoder.withIndent('  ');
+    var object = json.encode(connections.toString());
+    String prettyprint = encoder.convert(object);
+    log(prettyprint);
+
+    // log("this is connection list => " + json.encode(connections.toString()));
 
     FormData formData = FormData.fromMap({"data": connections});
 
-    print(formData.fields);
+    log(formData.fields.toString());
 
     if (connections.length > 0) {
       setState(() {
@@ -793,10 +870,29 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
               dbRef.updateConnection();
               connectionList = null;
               getDbList();
-              showDialogOnError("Successful", response.data["message"], "Ok",
-                  () {
-                Navigator.of(this.context).pop();
-              });
+              getOfflineDbList();
+              getOfflineDbList();
+              if (offlineconnectionList == null) {
+                showDialogOnError("Successful", response.data["message"], "Ok",
+                    () {
+                  Navigator.of(this.context).pop();
+                });
+              } else {
+                if (offlineconnectionList.length > 0) {
+                  showNextBatchDialog("Successful", response.data["message"],
+                      "Ok", "Next Batch", () {
+                    Navigator.of(this.context).pop();
+                  }, () {
+                    Navigator.of(this.context).pop();
+                    submitDetails();
+                  });
+                } else {
+                  showDialogOnError(
+                      "Successful", response.data["message"], "Ok", () {
+                    Navigator.of(this.context).pop();
+                  });
+                }
+              }
             } else if (response.statusCode == 403) {
               print(response.data);
               showInFlushBar(
@@ -816,8 +912,9 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
       } on DioError catch (e) {
         print("this is status code submit => " +
             e.response.statusCode.toString());
+        print("this is error message => " + e.message);
         print("this is status code submit => " + e.response.statusMessage);
-        print("this is data error => " + e.response.data.toString());
+        // log("this is data error => " + e.request.data.fields);
         if (e.response.statusCode == 403) {
           setState(() {
             _isLoading = false;
@@ -850,5 +947,10 @@ class _AllEntriesPageState extends State<AllEntriesPage> {
         Navigator.pop(this.context);
       });
     }
+  }
+
+  Future<List<ConnectionDb>> getOfflineList() async {
+    var connectionList = await dbRef.getAllConnectionsByStatus("No");
+    return connectionList;
   }
 }
