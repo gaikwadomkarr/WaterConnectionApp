@@ -81,7 +81,7 @@ class WaterConnectionDBHelper {
   void updateConnection() async {
     var client = await db;
     client.rawUpdate(
-        '''UPDATE connections SET uploadStatus = "Yes" WHERE uploadStatus = "No"''');
+        '''UPDATE connections SET uploadStatus = "Yes" Where id IN (Select id from connections Where uploadStatus = "No" Limit 25)''');
     print("entry made to database");
   }
 
@@ -144,6 +144,35 @@ class WaterConnectionDBHelper {
   }
 
   Future<List<ConnectionDb>> getConnectionsByStatus(status) async {
+    final client = await db;
+    final List<Map<String, dynamic>> connectionList = await client.rawQuery(
+        "SELECT * from connections WHERE uploadStatus='$status' LIMIT 25");
+    return List.generate(connectionList.length, (i) {
+      return ConnectionDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          contractor: connectionList[i]['contractor'],
+          saddle: connectionList[i]['saddle'],
+          zone: connectionList[i]['zone'],
+          consumerMobile: connectionList[i]['consumerMobile'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          ferrule: connectionList[i]['ferrule'],
+          roadCrossing: connectionList[i]['roadCrossing'],
+          mdpePipeLength: connectionList[i]['mdpePipeLength'],
+          zoneId: connectionList[i]['zoneId'],
+          saddleId: connectionList[i]['saddleId'],
+          contractorId: connectionList[i]['contractorId'],
+          branchId: connectionList[i]['branchId'],
+          createdBy: connectionList[i]['created_by'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<ConnectionDb>> getAllConnectionsByStatus(status) async {
     final client = await db;
     final List<Map<String, dynamic>> connectionList = await client
         .rawQuery("SELECT * from connections WHERE uploadStatus='$status'");

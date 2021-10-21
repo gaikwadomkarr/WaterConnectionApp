@@ -12,7 +12,7 @@ Dio getDio(String requestType) {
   } else if (requestType == "formdata") {
     print("inside formData");
     dio.options.headers['Content-Type'] = 'multipart/form-data';
-    dio.options.headers['Accept'] = '*/*';
+    dio.options.headers['Accept'] = 'application/json';
   }
   if (SessionData().data.token != null) {
     dio.options.headers['Authorization'] = 'Bearer ' + SessionData().data.token;
