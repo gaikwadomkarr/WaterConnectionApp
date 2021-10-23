@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waterconnection/Helpers/Dataconstants.dart';
 import 'package:waterconnection/Helpers/FlavConfig.dart';
@@ -42,14 +43,14 @@ class _WaterConnectionState extends State<WaterConnection> {
   @override
   void initState() {
     super.initState();
-    dbRef.init();
+    dbRef.meterReadingDbinit();
     _getCurrentLocation();
   }
 
   @override
   Widget build(BuildContext context) {
     AppBar appBar = AppBar(
-        title: Text("Meter Reading"),
+        title: Text("Water Meter"),
         actions: [
           Switch(
             value: Dataconstants.isOfflineSave,
@@ -76,144 +77,149 @@ class _WaterConnectionState extends State<WaterConnection> {
         ],
         backgroundColor: Colors.green[900]);
     return WillPopScope(
-      onWillPop: () {},
-      child: SafeArea(
-          child: Scaffold(
-              backgroundColor: Colors.white,
-              floatingActionButtonLocation:
-                  FloatingActionButtonLocation.centerFloat,
-              floatingActionButton: Container(
-                width: MediaQuery.of(context).size.width / 1.3,
-                child: InkWell(
-                  onTap: () {
-                    Dataconstants.isOfflineSave
-                        ? offlineSave()
-                        : submitDetails();
-                  },
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
-                    decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Text(
-                      Dataconstants.isOfflineSave ? "Offline Save" : "Save",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 15, color: Colors.white, letterSpacing: 2),
+      onWillPop: () async => false,
+      child: ModalProgressHUD(
+        inAsyncCall: _isLoading,
+        child: SafeArea(
+            child: Scaffold(
+                backgroundColor: Colors.white,
+                floatingActionButtonLocation:
+                    FloatingActionButtonLocation.centerFloat,
+                floatingActionButton: Container(
+                  width: MediaQuery.of(context).size.width / 1.3,
+                  child: InkWell(
+                    onTap: () {
+                      Dataconstants.isOfflineSave
+                          ? offlineSave()
+                          : submitDetails();
+                    },
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      padding: EdgeInsets.fromLTRB(40, 10, 40, 10),
+                      decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text(
+                        Dataconstants.isOfflineSave ? "Offline Save" : "Save",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
+                            letterSpacing: 2),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              appBar: appBar,
-              body: Container(
-                height: MediaQuery.of(context).size.height -
-                    appBar.preferredSize.height,
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      alignment: Alignment.center,
-                      width: MediaQuery.of(context).size.width,
-                      height: 25,
-                      color: Dataconstants.isOfflineSave
-                          ? Colors.red
-                          : Colors.green,
-                      child: Text(
-                          Dataconstants.isOfflineSave
-                              ? "Offline Mode"
-                              : "Online Mode",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                    Container(
-                      margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          buildTextFormField(
-                            'Consumer Name',
-                            '',
-                            consumerName,
-                            false,
-                            TextInputType.name,
-                            null,
-                            AutovalidateMode.disabled,
-                          ),
-                          buildTextFormField(
-                            'Address',
-                            '',
-                            consumerAddress,
-                            true,
-                            TextInputType.name,
-                            null,
-                            AutovalidateMode.disabled,
-                          ),
-                          buildTextFormField(
-                            'Meter Number',
-                            '',
-                            meterNumber,
-                            false,
-                            TextInputType.number,
-                            null,
-                            AutovalidateMode.disabled,
-                          ),
-                          buildTextFormField(
-                            'Meter Reading',
-                            '',
-                            meterReading,
-                            false,
-                            TextInputType.number,
-                            null,
-                            AutovalidateMode.disabled,
-                          ),
-                          SizedBox(height: 15),
-                          Container(
-                            // alignment: Alignment.center,
-                            width: fileName != null
-                                ? MediaQuery.of(context).size.width / 3
-                                : MediaQuery.of(context).size.width / 2,
-                            child: OutlineButton(
-                              child: fileName != null
-                                  ? Image.file(
-                                      imagePath,
-                                      height: 150,
-                                    )
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.photo_camera),
-                                        SizedBox(width: 10),
-                                        Text(
-                                          "Add Photo",
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.black,
-                                              letterSpacing: 2),
-                                        ),
-                                      ],
-                                    ),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                              onPressed: () {
-                                getImageFromCamera(context);
-                              },
-                              // icon: fileName != null
-                              //     ? null
-                              //     : Icon(Icons.photo_camera)
-                            ),
-                          ),
-                        ],
+                appBar: appBar,
+                body: Container(
+                  height: MediaQuery.of(context).size.height -
+                      appBar.preferredSize.height,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        alignment: Alignment.center,
+                        width: MediaQuery.of(context).size.width,
+                        height: 25,
+                        color: Dataconstants.isOfflineSave
+                            ? Colors.red
+                            : Colors.green,
+                        child: Text(
+                            Dataconstants.isOfflineSave
+                                ? "Offline Mode"
+                                : "Online Mode",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white)),
                       ),
-                    ),
-                  ],
-                ),
-              ))),
+                      Container(
+                        margin: EdgeInsets.fromLTRB(40, 5, 40, 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            buildTextFormField(
+                              'Consumer Name',
+                              '',
+                              consumerName,
+                              false,
+                              TextInputType.name,
+                              null,
+                              AutovalidateMode.disabled,
+                            ),
+                            buildTextFormField(
+                              'Address',
+                              '',
+                              consumerAddress,
+                              true,
+                              TextInputType.name,
+                              null,
+                              AutovalidateMode.disabled,
+                            ),
+                            buildTextFormField(
+                              'Meter Number',
+                              '',
+                              meterNumber,
+                              false,
+                              TextInputType.number,
+                              null,
+                              AutovalidateMode.disabled,
+                            ),
+                            buildTextFormField(
+                              'Meter Reading',
+                              '',
+                              meterReading,
+                              false,
+                              TextInputType.number,
+                              null,
+                              AutovalidateMode.disabled,
+                            ),
+                            SizedBox(height: 15),
+                            Container(
+                              // alignment: Alignment.center,
+                              width: fileName != null
+                                  ? MediaQuery.of(context).size.width / 3
+                                  : MediaQuery.of(context).size.width / 2,
+                              child: OutlineButton(
+                                child: fileName != null
+                                    ? Image.file(
+                                        imagePath,
+                                        height: 150,
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.photo_camera),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            "Add Photo",
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.black,
+                                                letterSpacing: 2),
+                                          ),
+                                        ],
+                                      ),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                onPressed: () {
+                                  getImageFromCamera(context);
+                                },
+                                // icon: fileName != null
+                                //     ? null
+                                //     : Icon(Icons.photo_camera)
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ))),
+      ),
     );
   }
 
@@ -249,7 +255,20 @@ class _WaterConnectionState extends State<WaterConnection> {
   }
 
   void offlineSave() async {
-    dbRef.init();
+    if (consumerName.text.isEmpty ||
+        consumerAddress.text.isEmpty ||
+        meterNumber.text.isEmpty ||
+        meterReading.text.isEmpty ||
+        imagePath == null) {
+      showDialogOnError('Empty Field(s)', 'Please enter all the fields', 'Ok',
+          () {
+        Navigator.pop(context);
+      });
+
+      return;
+    }
+
+    dbRef.meterReadingDbinit();
 
     final createDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
     // var currentTimeInSecs = Utils.currentTimeInSeconds();
@@ -285,6 +304,19 @@ class _WaterConnectionState extends State<WaterConnection> {
   }
 
   void submitDetails() async {
+    if (consumerName.text.isEmpty ||
+        consumerAddress.text.isEmpty ||
+        meterNumber.text.isEmpty ||
+        meterReading.text.isEmpty ||
+        imagePath == null) {
+      showDialogOnError('Empty Field(s)', 'Please enter all the fields', 'Ok',
+          () {
+        Navigator.pop(context);
+      });
+
+      return;
+    }
+
     String url =
         FlavorConfig.instance.url() + "/MeterConnections/addConnection";
 
@@ -364,7 +396,10 @@ class _WaterConnectionState extends State<WaterConnection> {
             SessionData().settoken(response.data[0]["new-token"]);
             print(SessionData().data.token);
             showDialogOnError(
-                "Session Timeout", "Your session has expired", "Retry", null);
+                "Session Timeout", "Your session has expired", "Retry", () {
+              Navigator.pop(this.context);
+              submitDetails();
+            });
           }
         } else {
           setState(() {

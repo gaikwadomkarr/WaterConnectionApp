@@ -32,6 +32,8 @@ class _MeterReadingsPageState extends State<MeterReadingsPage> {
   TextEditingController searchController = new TextEditingController();
   final dbRef = WaterConnectionDBHelper();
   List<MeterReadingDb> meterReadingList;
+  List<MeterReadingDb> offlineconnectionList;
+  int offlineCount = 0;
   List<String> consumerNames = List<String>();
   List<String> consumerPhotos = List<String>();
   List<String> addressList = List<String>();
@@ -56,6 +58,12 @@ class _MeterReadingsPageState extends State<MeterReadingsPage> {
   void getDbList() async {
     meterReadingList = await dbRef.getMeterReadingsList();
     meterReadingCount = meterReadingList.length;
+    setState(() {});
+  }
+
+  void getOfflineDbList() async {
+    offlineconnectionList = await dbRef.getAllMeterReadingsByStatus("No");
+    offlineCount = offlineconnectionList.length;
     setState(() {});
   }
 
@@ -292,7 +300,7 @@ class _MeterReadingsPageState extends State<MeterReadingsPage> {
           child: Scaffold(
             backgroundColor: Colors.white,
             appBar: AppBar(
-                title: Text("Meter Readings ($meterReadingCount)"),
+                title: Text("Total Count ($meterReadingCount)"),
                 actions: [
                   IconButton(
                     icon: Icon(Icons.download_outlined),
@@ -783,21 +791,45 @@ class _MeterReadingsPageState extends State<MeterReadingsPage> {
             });
             if (response.data["code"] == 200) {
               print(response.data["message"]);
-              dbRef.updateMeterReading();
+              dbRef.updateLimitMeterReading();
               meterReadingList = null;
               getDbList();
-              showDialogOnError("Successful", response.data["message"], "Ok",
-                  () {
-                Navigator.of(this.context).pop();
-              });
+              getOfflineDbList();
+              if (offlineconnectionList == null) {
+                showDialogOnError("Successful", response.data["message"], "Ok",
+                    () {
+                  Navigator.of(this.context).pop();
+                });
+              } else {
+                if (offlineconnectionList.length > 0) {
+                  showNextBatchDialog("Successful", response.data["message"],
+                      "Ok", "Next Batch", () {
+                    Navigator.of(this.context).pop();
+                  }, () {
+                    Navigator.of(this.context).pop();
+                    submitDetails();
+                  });
+                } else {
+                  showDialogOnError(
+                      "Successful", response.data["message"], "Ok", () {
+                    Navigator.of(this.context).pop();
+                  });
+                }
+              }
             } else if (response.statusCode == 403) {
               print(response.data);
               showInFlushBar(
                   context, response.data[0]["message"], _scaffoldKey);
               SessionData().settoken(response.data[0]["new-token"]);
               print(SessionData().data.token);
-              // showDialogOnError(this.context, "Session Timeout",
-              //     "Your session has expired", "Retry", isEmpty);
+              showDialogOnError("Session Timeout",
+                  "Your session has expired, please retry !", "Retry", () {
+                Navigator.pop(this.context);
+                submitDetails();
+
+                // Navigator.pushReplacement(this.context,
+                //     MaterialPageRoute(builder: (context) => LoginScreen()));
+              });
             }
           } else {
             setState(() {
@@ -843,5 +875,30 @@ class _MeterReadingsPageState extends State<MeterReadingsPage> {
         Navigator.pop(this.context);
       });
     }
+  }
+
+  void showNextBatchDialog(String title, String message, String btnText,
+      String btn2Text, Function function, Function function2) {
+    showDialog(
+      context: this.context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text(btnText),
+              onPressed: function,
+            ),
+            new FlatButton(
+              child: new Text(btn2Text),
+              onPressed: function2,
+            ),
+          ],
+        );
+      },
+    );
   }
 }

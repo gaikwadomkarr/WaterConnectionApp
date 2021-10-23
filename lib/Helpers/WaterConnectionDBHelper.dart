@@ -11,6 +11,7 @@ class WaterConnectionDBHelper {
   static final WaterConnectionDBHelper instance =
       WaterConnectionDBHelper._internal();
   static Database waterconnectionDB;
+  static Database meterReadingDB;
   WaterConnectionDBHelper._internal();
 
   factory WaterConnectionDBHelper() {
@@ -21,16 +22,24 @@ class WaterConnectionDBHelper {
     if (waterconnectionDB != null) {
       return waterconnectionDB;
     }
-    waterconnectionDB = await init();
+    waterconnectionDB = await connectionDbInit();
     return waterconnectionDB;
   }
 
-  Future<Database> init() async {
+  Future<Database> get meterreadingDb async {
+    if (meterReadingDB != null) {
+      return meterReadingDB;
+    }
+    meterReadingDB = await meterReadingDbinit();
+    return meterReadingDB;
+  }
+
+  Future<Database> connectionDbInit() async {
     Directory directory = await getExternalStorageDirectory();
-    String dbPath = join(directory.path, 'WaterConnection.db');
-    print("this is db path => " + dbPath.toString());
+    String connectionDbPath = join(directory.path, 'WaterConnection.db');
+    print("this is db path => " + connectionDbPath.toString());
     var database = openDatabase(
-      dbPath,
+      connectionDbPath,
       version: 2,
       onCreate: _onCreate,
     );
@@ -38,22 +47,20 @@ class WaterConnectionDBHelper {
     return database;
   }
 
+  Future<Database> meterReadingDbinit() async {
+    Directory directory = await getExternalStorageDirectory();
+    String meterReadingDbPath = join(directory.path, 'WaterMeter.db');
+    print("this is db path => " + meterReadingDbPath.toString());
+    var database = openDatabase(
+      meterReadingDbPath,
+      version: 2,
+      onCreate: _onCreateMeter,
+    );
+
+    return database;
+  }
+
   void _onCreate(Database db, int version) {
-    db.execute('''
-      CREATE TABLE meterreadings(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        consumerName TEXT,
-        consumerPhoto TEXT,
-        meterNumber INTEGER,
-        meterReading INTEGER,
-        consumerAddress TEXT,
-        latitude TEXT,
-        longitude TEXT,
-        created_at TEXT,
-        branchId INTEGER,
-        uploadStatus TEXT
-        )
-    ''');
     db.execute('''
       CREATE TABLE connections(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,6 +82,25 @@ class WaterConnectionDBHelper {
         contractorId INTEGER,
         branchId INTEGER,
         created_by INTEGER,
+        uploadStatus TEXT
+        )
+    ''');
+    print("Database was created!");
+  }
+
+  void _onCreateMeter(Database db, int version) {
+    db.execute('''
+      CREATE TABLE meterreadings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        consumerName TEXT,
+        consumerPhoto TEXT,
+        meterNumber INTEGER,
+        meterReading INTEGER,
+        consumerAddress TEXT,
+        latitude TEXT,
+        longitude TEXT,
+        created_at TEXT,
+        branchId INTEGER,
         uploadStatus TEXT
         )
     ''');
@@ -256,27 +282,34 @@ class WaterConnectionDBHelper {
   }
 
   void saveMeterReading(MeterReadingDb meterReadingDb) async {
-    var client = await db;
+    var client = await meterreadingDb;
     client.insert('meterreadings', meterReadingDb.toJson(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     print("reading entry made to database");
   }
 
   void deleteMeterReading(int id) async {
-    var client = await db;
+    var client = await meterreadingDb;
     client.delete("meterreadings", where: "id = ?", whereArgs: [id]);
     print("entry made to database");
   }
 
+  void updateLimitMeterReading() async {
+    var client = await meterreadingDb;
+    client.rawUpdate(
+        '''UPDATE meterreadings SET uploadStatus = "Yes" Where id IN (Select id from meterreadings Where uploadStatus = "No" Limit 25)''');
+    print("entry made to database");
+  }
+
   void updateMeterReading() async {
-    var client = await db;
+    var client = await meterreadingDb;
     client.rawUpdate(
         '''UPDATE meterreadings SET uploadStatus = "Yes" WHERE uploadStatus = "No"''');
     print("entry made to database");
   }
 
   Future<List<MeterReadingDb>> getMeterReadingsList() async {
-    final client = await db;
+    final client = await meterreadingDb;
     final List<Map<String, dynamic>> connectionList =
         await client.query('meterreadings');
     return List.generate(connectionList.length, (i) {
@@ -296,7 +329,7 @@ class WaterConnectionDBHelper {
   }
 
   Future<List<MeterReadingDb>> geMeterReadingsByName(name) async {
-    final client = await db;
+    final client = await meterreadingDb;
     final List<Map<String, dynamic>> connectionList = await client.rawQuery(
         "SELECT * from meterreadings WHERE consumerName like '%$name%'");
     return List.generate(connectionList.length, (i) {
@@ -316,7 +349,27 @@ class WaterConnectionDBHelper {
   }
 
   Future<List<MeterReadingDb>> getMeterReadingsByStatus(status) async {
-    final client = await db;
+    final client = await meterreadingDb;
+    final List<Map<String, dynamic>> connectionList = await client.rawQuery(
+        "SELECT * from meterreadings WHERE uploadStatus='$status' LIMIT 25");
+    return List.generate(connectionList.length, (i) {
+      return MeterReadingDb(
+          id: connectionList[i]['id'],
+          consumerName: connectionList[i]['consumerName'],
+          consumerPhoto: connectionList[i]['consumerPhoto'],
+          meterNumber: connectionList[i]['meterNumber'],
+          meterReading: connectionList[i]['meterReading'],
+          consumerAddress: connectionList[i]['consumerAddress'],
+          latitude: connectionList[i]['latitude'],
+          longitude: connectionList[i]['longitude'],
+          createdAt: connectionList[i]['created_at'],
+          branchId: connectionList[i]['branchId'],
+          uploadStatus: connectionList[i]["uploadStatus"]);
+    });
+  }
+
+  Future<List<MeterReadingDb>> getAllMeterReadingsByStatus(status) async {
+    final client = await meterreadingDb;
     final List<Map<String, dynamic>> connectionList = await client
         .rawQuery("SELECT * from meterreadings WHERE uploadStatus='$status'");
     return List.generate(connectionList.length, (i) {
@@ -337,7 +390,7 @@ class WaterConnectionDBHelper {
 
   Future<List<MeterReadingDb>> getMeterReadingsByDate(
       startDate, endDate) async {
-    final client = await db;
+    final client = await meterreadingDb;
     List<Map<String, dynamic>> connectionList = List<Map<String, dynamic>>();
     connectionList = await client.rawQuery(
         "SELECT * from meterreadings WHERE created_at BETWEEN '$startDate' AND '$endDate'");

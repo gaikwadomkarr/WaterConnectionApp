@@ -71,7 +71,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
   @override
   void initState() {
     super.initState();
-    dbRef.init();
+    dbRef.connectionDbInit();
     _getCurrentLocation();
     !_isOfflineSave ? retryFunction() : offlineMode();
   }
@@ -996,7 +996,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
             _isLoading = false;
           });
           if (response.data["code"] == 200) {
-            dbRef.init();
+            dbRef.connectionDbInit();
             var contractor;
             var saddleName;
             var zoneName;
@@ -1118,7 +1118,7 @@ class _AddConnectionPageState extends State<AddConnectionPage>
   }
 
   void offlineSave() async {
-    dbRef.init();
+    dbRef.connectionDbInit();
     var contractor;
     var saddleName;
     var zoneName;
