@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:images_picker/images_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,7 +44,7 @@ class _WaterConnectionState extends State<WaterConnection> {
   @override
   void initState() {
     super.initState();
-    dbRef.meterReadingDbinit();
+    if (dbRef == null) dbRef.meterReadingDbinit();
     _getCurrentLocation();
   }
 
@@ -206,6 +207,7 @@ class _WaterConnectionState extends State<WaterConnection> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10)),
                                 onPressed: () {
+                                  FocusScope.of(context).unfocus();
                                   getImageFromCamera(context);
                                 },
                                 // icon: fileName != null
@@ -439,13 +441,26 @@ class _WaterConnectionState extends State<WaterConnection> {
   }
 
   Future getImageFromCamera(BuildContext changeImgContext) async {
-    var image1 =
-        await _picker.getImage(source: ImageSource.camera, imageQuality: 20);
-    setState(() {
-      imagePath = File(image1.path);
-      fileName = imagePath.path.split('/').last;
-    });
-
+    imageCache.maximumSize = 0;
+    imageCache.clear();
+    try {
+      // var image1 = await _picker.getImage(
+      //   source: ImageSource.camera,
+      //   maxHeight: 200,
+      //   maxWidth: 200,
+      // );
+      var image1 = await ImagesPicker.pick(
+        count: 1,
+        pickType: PickType.image,
+        quality: 2.0,
+      );
+      setState(() {
+        imagePath = File(image1[0].path);
+        fileName = imagePath.path.split('/').last;
+      });
+    } catch (e) {
+      print(e.code);
+    }
     // <---------       END      -------->
   }
 
